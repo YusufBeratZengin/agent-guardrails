@@ -12,8 +12,13 @@ export function normalizePath(value, cwd, home) {
   const win = windows(expanded) || windows(cwd);
   const api = win ? path.win32 : path.posix;
   expanded = expanded.replace(/\\/g, '/');
+  if (win) {
+    // Extended-length (\\?\C:\...) and MSYS/Cygwin (/c/..., /cygdrive/c/...) spellings of a drive path.
+    expanded = expanded.replace(/^\/\/[?.]\//, '').replace(/^\/(?:cygdrive\/)?([a-z])(?=\/|$)/i, '$1:');
+  }
   const resolved = api.resolve(cwd, expanded).replace(/\\/g, '/').replace(/\/$/, '');
-  return win ? resolved.toLowerCase() : resolved;
+  // Windows ignores trailing dots and spaces in a path segment (".ssh." is ".ssh").
+  return win ? resolved.toLowerCase().split('/').map(s => (s === '.' || s === '..' ? s : s.replace(/[. ]+$/, '') || s)).join('/') : resolved;
 }
 
 /** @param {string} candidate @param {string} parent */

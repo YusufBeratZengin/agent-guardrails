@@ -29,3 +29,14 @@ test('Windows drives, UNC, traversal and home forms', () => {
   assert.ok(protectPaths({ ...ctx, input: { file_path: '\\\\server\\share\\repo\\a' } }, { ...rule, paths: ['//server/share/repo'] }).length);
   assert.ok(protectPaths({ ...ctx, toolName: 'PowerShell', input: { command: 'echo safe > "\\\\server\\share\\repo\\a"' } }, { ...rule, paths: ['//server/share/repo'] }).length);
 });
+test('MSYS, Cygwin, extended-length and trailing dot/space Windows path aliases', () => {
+  const ctx = context('Write', {}, 'C:/project');
+  const sshRule = { ...rule, paths: ['~/.ssh'] };
+  for (const file of ['/c/Users/example/.ssh/id', '/cygdrive/c/Users/example/.ssh/id', '\\\\?\\C:\\Users\\example\\.ssh\\id', '//?/C:/Users/example/.ssh/id', 'C:\\Users\\example\\.ssh.\\id', 'C:\\Users\\example\\.ssh \\id', 'C:\\Users\\example\\.ssh.\\.\\id']) {
+    assert.ok(protectPaths({ ...ctx, input: { file_path: file } }, sshRule).length, file);
+  }
+  assert.equal(normalizePath('/c/project/a', ctx.cwd, ctx.home), 'c:/project/a');
+  assert.deepEqual(protectPaths({ ...ctx, input: { file_path: '/c/Users/example/.sshx/id' } }, sshRule), []);
+  assert.equal(normalizePath('/c/x', '/project', '/home/example'), '/c/x');
+  assert.ok(protectPaths({ ...ctx, toolName: 'Bash', input: { command: 'echo x > /c/Users/example/.ssh/authorized_keys' } }, sshRule).length);
+});
