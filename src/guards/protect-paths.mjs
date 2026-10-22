@@ -22,5 +22,12 @@ export function protectPaths(ctx, rule) {
     words.forEach((word, i) => { if (word === '>' && words[i + 1] && words[i + 1] !== '>') { paths.push(words[i + 1]); } });
   }
   const parentRemoval = ancestors.some(p => rule.paths.some(protectedPath => within(normalizePath(protectedPath, ctx.projectRoot, ctx.home), normalizePath(p, ctx.cwd, ctx.home))));
-  return parentRemoval ? [finding('protect-paths', 'protected-write', 'A removal or move affects a protected path.')] : inspectPaths(paths, ctx, rule);
+  if (parentRemoval) { return [finding('protect-paths', 'protected-write', 'A removal or move affects a protected path.')]; }
+  const denied = inspectPaths(paths, ctx, rule);
+  if (denied.length) { return denied; }
+  // Guardrail config files: a human may approve a change, an agent may not silently disable its own rules.
+  const askRule = { ...rule, paths: rule.askPaths ?? [] };
+  const askParent = ancestors.some(p => askRule.paths.some(protectedPath => within(normalizePath(protectedPath, ctx.projectRoot, ctx.home), normalizePath(p, ctx.cwd, ctx.home))));
+  return askParent || inspectPaths(paths, ctx, askRule).length
+    ? [{ ...finding('protect-paths', 'config-write', 'A write targets a guardrails config file.'), mode: /** @type {'ask'} */ ('ask') }] : [];
 }

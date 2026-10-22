@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix: writes to the project and user `.agent-guardrails.json` now ask for approval by default (`protect-paths.askPaths`), so an agent cannot silently disable its own rules.
+
 ## 0.1.0 — 2026-10-22
 
 - Add dependency-free Node.js ESM guards for secrets, destructive commands, outbound actions, optional PII, and protected paths.

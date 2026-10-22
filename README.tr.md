@@ -47,7 +47,7 @@ Varsayılanlar üzerine önce `~/.agent-guardrails.json`, sonra proje içindeki 
 }
 ```
 
-`paths` dizisini değiştirdiğinizde korumak istediğiniz bütün yolları yazın. `.env.example` için okuma izni vermek içerik taramasını kapatmaz. Entropi eşiği, desenler ve günlük seçenekleri [ayar referansında](docs/configuration.md); editör desteği için [JSON Schema](schema/config.schema.json) bulunur.
+Varsayılan olarak `.agent-guardrails.json` ve `~/.agent-guardrails.json` dosyalarına yazma onay ister (`askPaths`); ajan kendi kurallarını sessizce kapatamaz. `paths` dizisini değiştirdiğinizde korumak istediğiniz bütün yolları yazın. `.env.example` için okuma izni vermek içerik taramasını kapatmaz. Entropi eşiği, desenler ve günlük seçenekleri [ayar referansında](docs/configuration.md); editör desteği için [JSON Schema](schema/config.schema.json) bulunur.
 
 ## Komutlar
 

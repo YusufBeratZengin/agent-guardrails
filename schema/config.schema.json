@@ -50,7 +50,8 @@
           "properties": {
             "id": { "const": "protect-paths" },
             "mode": { "$ref": "#/$defs/mode" },
-            "paths": { "$ref": "#/$defs/strings" }
+            "paths": { "$ref": "#/$defs/strings" },
+            "askPaths": { "$ref": "#/$defs/strings" }
           }
         }
       }

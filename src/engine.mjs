@@ -17,7 +17,7 @@ export function evaluate(ctx, config, plugins = []) {
     [r.pii, () => pii(ctx, r.pii, r.outbound, plugins)],
     [r['protect-paths'], () => protectPaths(ctx, r['protect-paths'])],
   ];
-  const findings = checks.flatMap(([rule, check]) => rule.mode === 'off' ? [] : check().map(f => ({ ...f, mode: rule.mode })));
+  const findings = checks.flatMap(([rule, check]) => rule.mode === 'off' ? [] : check().map(f => ({ ...f, mode: f.mode === 'ask' && rule.mode === 'deny' ? 'ask' : rule.mode })));
   const decision = findings.some(f => f.mode === 'deny') ? 'deny' : findings.some(f => f.mode === 'ask') ? 'ask' : findings.length ? 'warn' : 'pass';
   return { decision, findings };
 }

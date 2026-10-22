@@ -16,6 +16,7 @@ Defaults live in [`src/defaults.mjs`](../src/defaults.mjs); editor schema: [`sch
 | `rules.outbound.toolPatterns` | see below | Tool-name globs |
 | `rules.outbound.commandPatterns` | see below | Globs applied to normalized command invocations |
 | `rules.pii.detectors` | `["generic"]` | IDs of trusted programmatic detectors |
+| `rules.protect-paths.askPaths` | project and user `.agent-guardrails.json` | Writes ask for approval (not denied) while the rule mode is `deny` |
 | `rules.protect-paths.paths` | SSH/AWS/GnuPG dirs | Directory roots, not globs; includes descendants |
 | `audit.enabled` | false | Append a decision per live hook invocation |
 | `audit.path` | `.agent-guardrails.audit.jsonl` | Absolute path or path relative to project root; parent must exist |

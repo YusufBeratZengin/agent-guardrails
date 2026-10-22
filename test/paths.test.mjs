@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizePath } from '../src/paths.mjs';
 import { protectPaths } from '../src/guards/protect-paths.mjs';
+import { evaluate } from '../src/engine.mjs';
 import { config, context } from './helpers.mjs';
 const rule = { ...config.rules['protect-paths'], paths: ['~/.ssh', '/other/repo', '/project/locked'] };
 for (const file of ['/home/example/.ssh/config', '~/.ssh/id_fake', '/other/repo/a', '/project/locked/../locked/a']) {
@@ -39,4 +40,13 @@ test('MSYS, Cygwin, extended-length and trailing dot/space Windows path aliases'
   assert.deepEqual(protectPaths({ ...ctx, input: { file_path: '/c/Users/example/.sshx/id' } }, sshRule), []);
   assert.equal(normalizePath('/c/x', '/project', '/home/example'), '/c/x');
   assert.ok(protectPaths({ ...ctx, toolName: 'Bash', input: { command: 'echo x > /c/Users/example/.ssh/authorized_keys' } }, sshRule).length);
+});
+
+test('guardrails config files require approval, not silent writes', () => {
+  for (const [tool, input] of [['Write', { file_path: '/project/.agent-guardrails.json' }], ['Edit', { file_path: '.agent-guardrails.json' }], ['Write', { file_path: '~/.agent-guardrails.json' }], ['Bash', { command: 'echo {} > .agent-guardrails.json' }]]) {
+    const result = evaluate(context(tool, input), config);
+    assert.equal(result.decision, 'ask', JSON.stringify(input));
+  }
+  assert.equal(evaluate(context('Read', { file_path: '.agent-guardrails.json' }), config).decision, 'pass');
+  assert.equal(evaluate(context('Write', { file_path: '~/.ssh/config' }), config).decision, 'deny');
 });

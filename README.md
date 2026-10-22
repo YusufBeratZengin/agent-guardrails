@@ -59,7 +59,7 @@ Precedence: defaults → `~/.agent-guardrails.json` → project `.agent-guardrai
 }
 ```
 
-Custom path arrays replace defaults: include every directory you want protected. Credential read allowlists are project-relative globs; allowlisting a read does not exempt secret scanning. See the [complete reference](docs/configuration.md) and [JSON Schema](schema/config.schema.json).
+By default, writes to `.agent-guardrails.json` and `~/.agent-guardrails.json` require approval (`askPaths`, `ask` while `protect-paths` is `deny`), so an agent cannot silently disable its own rules. Custom path arrays replace defaults: include every directory you want protected. Credential read allowlists are project-relative globs; allowlisting a read does not exempt secret scanning. See the [complete reference](docs/configuration.md) and [JSON Schema](schema/config.schema.json).
 
 ## CLI
 

@@ -9,7 +9,7 @@ export const defaults = {
       commandPatterns: ['git push*', 'gh pr create*', 'gh pr merge*', 'gh release create*', 'npm publish*', 'npm unpublish*', 'pnpm publish*', 'yarn npm publish*', 'twine upload*', 'docker push*', 'cargo publish*', 'vercel*', 'netlify deploy*', 'curl*', 'wget*', 'Invoke-WebRequest*', 'Invoke-RestMethod*'],
     },
     pii: { id: 'pii', mode: 'off', detectors: ['generic'] },
-    'protect-paths': { id: 'protect-paths', mode: 'deny', paths: ['~/.ssh', '~/.aws', '~/.gnupg'] },
+    'protect-paths': { id: 'protect-paths', mode: 'deny', paths: ['~/.ssh', '~/.aws', '~/.gnupg'], askPaths: ['.agent-guardrails.json', '~/.agent-guardrails.json'] },
   },
   audit: { enabled: false, path: '.agent-guardrails.audit.jsonl' },
 };
