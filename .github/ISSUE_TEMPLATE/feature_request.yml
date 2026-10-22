@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a focused improvement to local agent safety hooks.
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What task or risk is currently difficult to handle?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the expected CLI or rule behavior with synthetic examples.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include configuration changes or other tools you have considered.
+    validations:
+      required: true

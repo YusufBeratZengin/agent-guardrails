@@ -54,3 +54,25 @@ test('wrapper handling keeps safe commands allowed', () => {
     assert.deepEqual(inspectDestructive(cmd, context(), rule), [], cmd);
   }
 });
+
+// New coverage is additive; the existing regression cases above stay intact.
+const additionalDestructive = [
+  ['git-primary-branch-delete', ['git branch -D main', 'git branch -D master', 'git branch -D trunk', 'git branch --delete --force main', 'git branch -df main'], ['git branch -d feature', 'git branch -d main', 'git branch -D feature', 'git branch --list main']],
+  ['git-recovery-delete', ['git reflog expire --expire=now --all && git gc --prune=now', 'git gc --prune now; git reflog expire --expire now --all'], ['git reflog expire --expire=now --all', 'git gc --prune=now', 'git reflog expire --expire=30.days && git gc --prune=now', 'echo "git reflog expire --expire=now && git gc --prune=now"']],
+  ['git-update-ref-delete', ['git update-ref -d refs/heads/feature', 'git update-ref --delete refs/tags/old'], ['git update-ref refs/heads/feature HEAD', 'git show-ref -d']],
+  ['docker-system-prune', ['docker system prune -a', 'docker system prune --all --force', 'docker system prune -af'], ['docker image ls', 'docker system df', 'docker system prune', 'echo docker system prune -a']],
+  ['docker-volume-prune', ['docker volume prune -f', 'docker volume prune --force'], ['docker volume ls', 'docker volume prune']],
+  ['disk-overwrite', ['dd if=image of=/dev/sda', 'sudo dd if=image of=/dev/nvme0n1', 'dd of=/dev/vda if=image', 'dd of=/dev/disk/by-id/synthetic if=image'], ['dd if=/dev/zero of=image', 'dd if=image of=/dev/null', 'echo dd of=/dev/sda']],
+  ['filesystem-format', ['mkfs /dev/sda', 'mkfs.ext4 /dev/vda', '/sbin/mkfs.xfs disk.img'], ['mkfs.ext4 --help', 'mkfs --version', 'echo mkfs /dev/sda', 'ls mkfs.ext4']],
+  ['file-shred', ['shred file.txt', 'shred -uz file.txt', 'sudo shred /dev/sda'], ['shred --help', 'echo shred file.txt', 'ls shred']],
+  ['external-truncate', ['truncate -s 0 /outside/log', 'truncate --size=0 ../outside', 'truncate -s0 /outside', 'truncate -s 0 "$TARGET"', 'cd .. && truncate -s 0 log', 'truncate -s 0 /project-backup/log'], ['truncate -s 0 local.log', 'truncate --size 0 /project/log', 'truncate -s 1 /outside/log', 'echo truncate -s 0 /outside']],
+  ['disk-redirection', ['> /dev/sda', 'echo data > /dev/sdb1', 'cat image >> /dev/sd*', 'sh -c "> /dev/sda"'], ['echo data > file', 'echo data > /dev/null', 'echo "> /dev/sda"', 'cat /dev/sda']],
+];
+for (const [code, deniedCommands, allowedCommands] of additionalDestructive) {
+  for (const cmd of deniedCommands) {
+    test(`${code} detects: ${cmd}`, () => assert.ok(inspectDestructive(cmd, context(), rule).some(f => f.code === code), cmd));
+  }
+  for (const cmd of allowedCommands) {
+    test(`${code} avoids false positive: ${cmd}`, () => assert.deepEqual(inspectDestructive(cmd, context(), rule), [], cmd));
+  }
+}

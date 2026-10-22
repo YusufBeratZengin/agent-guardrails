@@ -1,19 +1,41 @@
 {
   "name": "agent-guardrails",
   "version": "0.1.0",
-  "description": "Auditable, local safety hooks for AI coding agents.",
+  "description": "Auditable, local safety hooks for AI coding agents",
   "type": "module",
-  "engines": { "node": ">=20" },
-  "bin": { "agent-guardrails": "bin/agent-guardrails.mjs" },
-  "exports": { ".": "./src/index.mjs", "./schema": "./schema/config.schema.json" },
-  "files": ["bin", "src", "schema", "docs", ".githooks", "README.md", "README.tr.md", "LICENSE", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md"],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "agent-guardrails": "bin/agent-guardrails.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./schema": "./schema/config.schema.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schema",
+    "docs",
+    ".githooks",
+    "README.md",
+    "README.tr.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "examples",
+    "CODE_OF_CONDUCT.md"
+  ],
   "scripts": {
     "test": "node scripts/test.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm test",
     "bench": "node scripts/bench.mjs",
-    "scan": "node bin/agent-guardrails.mjs scan ."
+    "scan": "node bin/agent-guardrails.mjs scan .",
+    "prepublishOnly": "npm run check && npm run scan"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",
@@ -22,5 +44,25 @@
   },
   "license": "MIT",
   "author": "Yusuf Berat Zengin",
-  "keywords": ["claude-code", "coding-agents", "hooks", "security", "guardrails"]
+  "keywords": [
+    "claude-code",
+    "claude-code-hooks",
+    "ai-agents",
+    "secret-scanning",
+    "pre-commit",
+    "security",
+    "guardrails"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YusufBeratZengin/agent-guardrails.git"
+  },
+  "homepage": "https://github.com/YusufBeratZengin/agent-guardrails#readme",
+  "bugs": {
+    "url": "https://github.com/YusufBeratZengin/agent-guardrails/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
 }

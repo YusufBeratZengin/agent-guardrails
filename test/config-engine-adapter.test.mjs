@@ -10,6 +10,22 @@ import { audit } from '../src/audit.mjs';
 import { glob } from '../src/util.mjs';
 import { config, context, payload, fixture, mixed } from './helpers.mjs';
 
+test('engine deduplicates rule/code pairs while preserving first-seen message order', () => {
+  const result = evaluate(context('Bash', { command: 'echo $(git clean -fdx); git reset --hard; git clean -fd' }), config);
+  assert.deepEqual(result.findings.map(f => [f.ruleId, f.code, f.message]), [
+    ['destructive', 'git-clean', 'Forced clean deletes untracked work.'],
+    ['destructive', 'git-reset-hard', 'Hard reset discards work.'],
+  ]);
+  assert.equal(evaluate(context('Bash', { command: 'echo $(git clean -fdx)' }), config).findings.length, 1);
+});
+
+test('POSIX cwd stays POSIX on every host through config lookup and adapter', () => {
+  const { config: loaded, projectRoot } = loadConfig('/tmp/proj', '/tmp/guardrails-synthetic-home');
+  assert.equal(projectRoot, '/tmp/proj');
+  const ctx = decode(payload('Bash', { command: 'rm -rf node_modules' }, '/tmp/proj'), { projectRoot, home: '/tmp/guardrails-synthetic-home' });
+  assert.deepEqual(evaluate(ctx, loaded), { decision: 'pass', findings: [] });
+});
+
 test('config defaults, deep precedence, arrays replace, no default mutation', () => {
   const custom = resolveConfig({ rules: { secrets: { mode: 'ask', allowReadPaths: ['a'] }, outbound: { allMcp: true } } }, { rules: { secrets: { mode: 'warn', allowReadPaths: ['b'] } } });
   assert.equal(custom.rules.secrets.mode, 'warn');

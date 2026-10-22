@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          { "type": "command", "command": "npx --no-install agent-guardrails hook" }
+        ]
+      }
+    ]
+  }
+}

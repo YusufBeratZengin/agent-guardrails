@@ -1,6 +1,7 @@
 node_modules/
 coverage/
 is/
+.tmp-test/
 *.tgz
 *.jsonl
 .env*
@@ -9,6 +10,7 @@ is/
 id_rsa*
 id_ed25519*
 .agent-guardrails.json
+!examples/.agent-guardrails.json
 .claude/settings.local.json
 *.bak
 *.bak.*

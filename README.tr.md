@@ -1,35 +1,142 @@
 # agent-guardrails
 
+[![CI](https://github.com/YusufBeratZengin/agent-guardrails/actions/workflows/ci.yml/badge.svg)](https://github.com/YusufBeratZengin/agent-guardrails/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-green.svg)](package.json)
+
 Yapay zekâ ile kod yazarken sık yapılan tehlikeli işlemleri yakalayan yerel hook paketi. Anahtar ve token sızıntılarını, iş kaybına yol açan komutları engeller; gönderim ve yayın gibi dış işlemlerden önce kullanıcıya sorar. Node.js 20 ve üzeriyle çalışır. Çalışma zamanında ek bağımlılığı yoktur, ağa istek atmaz ve telemetri toplamaz.
 
 [English](README.md) · [Ayarlar](docs/configuration.md) · [Sınırlar](docs/threat-model.md) · [Örnekler](docs/examples.md)
 
 ## Bir dakikada kurulum
 
-Bu depoyu indirdiğiniz klasörde:
+**İlk sürüm yayımlandıktan sonra**, projenizin kök klasöründe:
 
 ```sh
-npm install --global . --omit=dev --ignore-scripts
-cd /projenizin/yolu
-agent-guardrails init
-agent-guardrails init --write
+npx agent-guardrails init --write
 ```
 
-`init` yalnızca Claude Code ayar parçasını gösterir. `--write`, mevcut `.claude/settings.json` dosyasına hook'u ekler; diğer ayarları korur ve dosya varsa `settings.json.bak.<zaman>` adıyla yedekler. Tekrar çalıştırmak aynı hook'u bir daha eklemez. Claude Code'u yeniden başlatıp `/hooks` üzerinden kurulumu doğrulayın. Komut, hook'un PATH ortamında bulunmalı; gerekirse [mutlak yol örneğini](docs/examples.md) kullanın.
+Tekrarlanabilir, proje içinde tutulan bir kurulum için yayımdan sonra:
 
-0.1.0 sürümü npm yayınına hazırlanmıştır; paketin npm'de yayımlandığı veya adın boşta olduğu varsayılmaz. Bu kurulum yerel depoyu kullanır.
+```sh
+npm install --save-dev agent-guardrails
+npx --no-install agent-guardrails init --write --command "npx --no-install agent-guardrails hook"
+```
+
+Hook'un çalıştığı ortamda geliştirme bağımlılığı kurulu kalmalı. `--no-install`, hook çalışırken eksik paketin indirilmesini önler. Varsayılan ayar `agent-guardrails hook` kullanır; komut hook sürecinin PATH ortamında bulunmalı. `--command` ile proje içindeki paketi veya mutlak bir yolu seçebilirsiniz.
+
+**Bugün çalışan yol, kaynak koddan kullanım:** bu deponun klasöründe, kurulum yapmadan:
+
+```sh
+node bin/agent-guardrails.mjs init
+node bin/agent-guardrails.mjs init --command 'node "/absolute/path/agent-guardrails/bin/agent-guardrails.mjs" hook'
+```
+
+Mutlak script yolunu kendi deponuzun yoluyla değiştirin. Seçtiğiniz ayar parçasını `.claude/settings.json` dosyasına eklemek için `--write` kullanın. CLI'ı mutlak yoluyla başka bir projenin kökünden çalıştırarak oraya da kurabilirsiniz. `init` yalnızca ayarı gösterir; `--write` diğer ayarları korur, mevcut dosyayı değiştirmeden önce `settings.json.bak.<zaman>` yedeği oluşturur. Aynı komutla tekrar kurulum yapmak değişiklik yaratmaz. Özel komut aynen kaydedilir; boş olamaz ve tek satır olmalıdır. Claude Code'u yeniden başlatıp `/hooks` üzerinden kurulumu doğrulayın. [Shell ve PATH örnekleri](docs/examples.md).
+
+Yukarıdaki npm komutları ilk yayından sonrası içindir; bu depo paketin zaten yayımlandığını iddia etmez. Kaynak kod komutları ve sentetik demo bugün, npm'e bağlanmadan çalışır.
+
+## Bir engelleme nasıl görünür?
+
+Bu deponun kökünde [sentetik demoyu](examples/demo.mjs) çalıştırın:
+
+```sh
+node examples/demo.mjs
+```
+
+Demo her payload için bellekte `agent-guardrails test` çağırır. İncelenen komutları çalıştırmaz, sentetik anahtarı dosyaya yazmaz. Gerçek çıktı:
+
+```text
+git push
+{
+  "decision": "ask",
+  "findings": [
+    {
+      "ruleId": "outbound",
+      "code": "human-confirmation",
+      "message": "Outbound action requires human confirmation for this invocation.",
+      "preview": "[REDACTED]",
+      "mode": "ask"
+    }
+  ],
+  "output": {
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "ask",
+      "permissionDecisionReason": "[outbound:human-confirmation] Outbound action requires human confirmation for this invocation."
+    }
+  }
+}
+git reset --hard
+{
+  "decision": "deny",
+  "findings": [
+    {
+      "ruleId": "destructive",
+      "code": "git-reset-hard",
+      "message": "Hard reset discards work.",
+      "preview": "[REDACTED]",
+      "mode": "deny"
+    }
+  ],
+  "output": {
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "deny",
+      "permissionDecisionReason": "[destructive:git-reset-hard] Hard reset discards work."
+    }
+  }
+}
+Write with a synthetic AWS key
+{
+  "decision": "deny",
+  "findings": [
+    {
+      "ruleId": "secrets",
+      "code": "aws-access-key",
+      "message": "Potential aws-access-key detected.",
+      "preview": "[REDACTED]",
+      "mode": "deny"
+    }
+  ],
+  "output": {
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "deny",
+      "permissionDecisionReason": "[secrets:aws-access-key] Potential aws-access-key detected."
+    }
+  }
+}
+```
+
+Çıktıda hem kural bulguları hem Claude Code'a gönderilecek JSON bulunur. Üçü de geçerli değerlendirme olduğundan `test` çıkış kodu 0'dır; engelleme kararı JSON içinde iletilir. PowerShell'de stdin kullanımı için [yerel nesne örneğine](docs/examples.md#powershell-dry-run) bakın.
+
+```text
+KURAL          VARSAYILAN  AMAÇ
+secrets        deny        Kimlik bilgileri ve hassas dosya okumaları
+destructive    deny        Veri kaybına yol açan komutlar
+outbound       ask         Her dış işlemde kullanıcı onayı
+pii            off         İsteğe bağlı kişisel veri taraması
+protect-paths  deny        Korunan yollara yazma denetimi
+```
 
 ## Hangi kurallar var?
 
 | Kural | Varsayılan | Kapsam |
 | --- | --- | --- |
 | `secrets` | engelle | Anahtar biçimleri, özel anahtarlar, JWT, yüksek entropili parola/token atamaları ve kimlik bilgisi dosyalarını okuma |
-| `destructive` | engelle | Hard reset, zorla clean/push, toplu checkout, stash silme, geniş kapsamlı silme, chmod 777, indirileni doğrudan çalıştırma |
+| `destructive` | engelle | Hard reset, zorla clean/push, toplu checkout, stash/ref/kurtarma verisi silme, ana branch'i zorla silme, Docker prune, disk biçimlendirme ve üzerine yazma, shred, proje dışı truncate, geniş kapsamlı silme, chmod 777, indirileni doğrudan çalıştırma |
 | `outbound` | sor | Gönderim, yayın, birleştirme, harcama araçları; push, PR oluşturma, paket yayını ve yaygın ağ komutları |
 | `pii` | kapalı | Dış araçlara giden içerikte e-posta, telefon, Luhn kart kontrolü ve mod-97 IBAN kontrolü |
 | `protect-paths` | engelle | Belirlenen klasörlere yazma; başlangıçta `~/.ssh`, `~/.aws`, `~/.gnupg` |
 
 Modlar: `deny` engeller, `ask` kullanıcıya sorar, `warn` uyarır, `off` kuralı kapatır. Aynı çağrıda öncelik **deny > ask > warn > pass** şeklindedir. Temiz çıkan çağrılar ajanın kendi izin denetimini devre dışı bırakmaz. İzinler önbelleğe alınmaz; eşleşen her işlem yeniden sorulur. `--force-with-lease` destructive kuralından geçse bile push için outbound kuralı sorar.
+
+## Neden yalnızca permissions.deny yeterli değil?
+
+Claude Code izin desenleri araçları ve açık komutları kısıtlamak için yararlıdır. Bu hook'lar payload içeriğinde sır ve isteğe bağlı kişisel veri taraması, zincirlenmiş komutları ve açık wrapper'ları ayrıştırma, her dış işlem için `ask` kararı ve isteğe bağlı maskelenmiş günlük ekler. Ajanın kendi izinlerini de açık tutun; ayrıştırıcının kapsamı ve ajanın uyguladığı izin akışı sınırlıdır.
+
+## Örnekler
+
+[Çalıştırılabilir örnekler](docs/examples.md): [Claude ayarı](examples/settings.snippet.json), [sıkı ekip profili](examples/.agent-guardrails.json), [POSIX pre-commit hook](examples/pre-commit.sh) ve [GitHub Actions taraması](examples/github-actions-scan.yml).
 
 ## Ayarlar
 
@@ -52,7 +159,7 @@ Varsayılan olarak `.agent-guardrails.json` ve `~/.agent-guardrails.json` dosyal
 ## Komutlar
 
 ```text
-agent-guardrails init [--write]
+agent-guardrails init [--write] [--command <string>]
 agent-guardrails hook
 agent-guardrails test '<json>'
 agent-guardrails scan <yol>
@@ -61,7 +168,7 @@ agent-guardrails explain <kural-id>
 
 `hook`, stdin üzerinden Claude Code `PreToolUse` JSON verisini okur. Engelleme ve sorma kararları stdout'a JSON olarak yazılır; çıkış kodu 0'dır. Bozuk girdi, ayar veya günlük hatası çıkış kodu 2 ile işlemi engeller. `test` kuru denemedir: komutu çalıştırmaz, günlük yazmaz ve geçerli değerlendirmede 0 döner. [PowerShell örneği](docs/examples.md#powershell-dry-run) kullanılabilir.
 
-`scan` için çıkış kodları: **0 temiz, 1 bulgu, 2 hata**. Hook modu kapalı olsa da sır taraması yapar; `.env` gibi gitignore'daki dosyaları da tarar. Sembolik bağlantıları ve `.git`, `node_modules`, `coverage`, `is` klasörlerini atlar. Bulgu çıktısında dosya yolu, kural kodu ve tamamen maskelenmiş önizleme bulunur; yakalanan değer yazılmaz. Git geçmişini veya yalnızca stage'deki içeriği taramaz. [Pre-commit örneği](docs/examples.md#pre-commit) depodadır.
+`scan` için çıkış kodları: **0 temiz, 1 bulgu, 2 hata**. Hook modu kapalı olsa da sır taraması yapar; `.env` gibi gitignore'daki dosyaları da tarar. Sembolik bağlantıları ve `.git`, `node_modules`, `coverage`, `.tmp-test` ile eski geçici çalışma klasörlerini atlar. Bulgu çıktısında dosya yolu, kural kodu ve tamamen maskelenmiş önizleme bulunur; yakalanan değer yazılmaz. Git geçmişini veya yalnızca stage'deki içeriği taramaz. [Pre-commit örneği](docs/examples.md#pre-commit) depodadır.
 
 ## Bilmeniz gereken sınırlar
 
@@ -73,18 +180,21 @@ Ajanın sandbox ve izin ayarlarını, ağ kısıtlarını, sınırlı yetkileri 
 
 Claude Code `PreToolUse` desteği hazırdır; protokol [ayrı adapter modülündedir](src/adapters/claude-code.mjs). **Codex CLI desteği planlanmıştır.** Resmî belgelerde `ask` davranışı henüz desteklenmediği için eksik bir onay kapısı sunulmuyor; notify üzerinden engelleme varsayılmıyor. [Kaynaklar ve entegrasyon notları](docs/adapters.md).
 
-## Günlük ve geliştirme
+## Günlük
 
 İsteğe bağlı JSONL günlüğü karar, zaman, kural kodu, mod ve `[REDACTED]` önizlemesini kaydeder. Komut, içerik, dosya yolu, araç adı veya oturum kimliği kaydetmez. Günlük yazılamazsa hook engeller. Windows'ta erişim klasörün ACL izinlerine bağlıdır; saklama süresini kullanıcı yönetir.
 
+## Geliştirme
+
 ```sh
-npm install --ignore-scripts --no-audit --no-fund
 npm run check
 npm run scan
 npm run bench
 ```
 
-Testler Node'un kendi test altyapısını kullanır. ESLint ve TypeScript yalnız geliştirme bağımlılığıdır. CI, Ubuntu ve Windows üzerinde Node 20/22 ile lint, JSDoc tip kontrolü, test ve sır taraması çalıştırır. Hook için hedef tipik girdilerde 50 ms altıdır; ölçüm kod değerlendirmesiyle yeni süreç açılışını ayrı raporlar. Disk, antivirüs ve işletim sistemi toplam süreyi etkiler.
+Kontrollerden önce geliştirme araçlarını [katkı rehberindeki](CONTRIBUTING.md) gibi kurun. Testler Node'un kendi test altyapısını ve `.tmp-test/` altında geçici dosyaları kullanır. ESLint ve TypeScript yalnız geliştirme bağımlılığıdır. CI, Ubuntu ve Windows üzerinde Node 20/22/24 ile lint, JSDoc tip kontrolü, test ve sır taraması çalıştırır.
+
+Ubuntu CI, süreç açılışı hariç ısınmış çekirdek değerlendirmesinde p95 için 10 ms sınırı uygular. `npm run bench`, çekirdek süresini yeni süreç median/p95 değerlerinden ayrı raporlar. Kısıtlı ortamlarda `npm run bench -- --core-only` alt süreç açmadan yalnızca çekirdeği ölçer. Görevde verilen önceki yeni süreç ölçümü yaklaşık 120 ms'dir; [ölçüm sınırlarına](docs/threat-model.md#performance-evidence) bakın. Disk, antivirüs, Node açılışı ve işletim sistemi toplam süreyi etkiler; donanımdan bağımsız gecikme garantisi verilmez.
 
 ## Sık sorulanlar
 
@@ -92,8 +202,18 @@ Testler Node'un kendi test altyapısını kullanır. ESLint ve TypeScript yalnı
 
 **Sahte anahtar neden engellendi?** Biçim denetlenir, anahtarın geçerliliği sorgulanmaz. `xxxx`, `<your-key>`, `example` gibi açık yer tutucular kullanın. Gerekirse dar bir `allowValues` istisnası ekleyin; gerçek anahtarı ayara yazmayın.
 
-**Salt okunur MCP çağrısı neden soruluyor?** `allMcp: true` tüm MCP çağrılarını sorar. Varsayılan ayarda yalnız eşleşen araç adları sorulur. Desen dizileri önceki dizinin tamamını değiştirir.
+**curl veya salt okunur MCP çağrısı neden soruluyor?** Ağ istemcileri veri yükleyebildiği için curl/wget ve PowerShell web istemcileri varsayılan olarak sorar. `allMcp: true` salt okunur MCP çağrılarını da sorar. `commandPatterns` veya `toolPatterns` dizilerini daraltmadan önce riski değerlendirin; diziler öncekinin tamamını değiştirir.
+
+**`ask` insan onayını garanti eder mi?** Arayüzü ajan yönetir. Etkileşimli izin modunda, kurulu sürümünüzde istemleri doğrulayın ve başka bir hook'tan otomatik onay döndürmeyin. Pakette onay önbelleği veya ayrı bir onay servisi yoktur.
 
 **Başka depoyu koruyabilir miyim?** `protect-paths.paths` içine mutlak veya proje köküne göreli yol ekleyin. Kesin sınır için işletim sistemi düzeyinde izolasyon gerekir.
+
+**Tarama, özel bir sır tarayıcısının yerini tutar mı?** Hayır. Biçim ve entropi sezgileriyle çalışan yerel bir pre-commit yardımcısıdır. Git geçmişi, kodlanmış veri ve kuruma özel kimlik bilgileri için özel bir tarayıcı kullanın.
+
+## Katkı
+
+[Katkı rehberini](CONTRIBUTING.md), [davranış kurallarını](CODE_OF_CONDUCT.md) ve [güvenlik bildirimi yönergelerini](SECURITY.md) okuyun. Yayın otomasyonu, sahibi gerekli ayarları yaptıktan sonra npm trusted publishing kullanır.
+
+## Lisans
 
 MIT · Copyright (c) 2026 Yusuf Berat Zengin

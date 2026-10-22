@@ -1,0 +1,40 @@
+name: Bug report
+description: Report an incorrect result or a CLI problem using synthetic inputs only.
+title: "bug: "
+labels: [bug]
+body:
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before reporting
+      options:
+        - label: I searched existing issues and removed all credentials and personal data.
+          required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions and operating system
+      description: Include agent-guardrails, Node.js, Claude Code, OS and shell versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Include steps and a synthetic payload passed to agent-guardrails test. Construct fake keys from fragments. Never paste production payloads.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed result and redacted logs
+      description: Include the redacted agent-guardrails test output and relevant sanitized configuration.
+    validations:
+      required: true

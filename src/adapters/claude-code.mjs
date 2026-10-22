@@ -26,7 +26,9 @@ export function failure() {
   return { exitCode: 2, stderr: 'agent-guardrails: hook input, configuration, or audit processing failed; action blocked.\n' };
 }
 
-/** Broad matcher includes PowerShell and MCP tools. No npx/network at hook time. */
-export function settingsSnippet() {
-  return { hooks: { PreToolUse: [{ matcher: '.*', hooks: [{ type: 'command', command: 'agent-guardrails hook' }] }] } };
+/** Broad matcher includes PowerShell and MCP tools. Commands are stored verbatim.
+ * @param {string} [command] */
+export function settingsSnippet(command = 'agent-guardrails hook') {
+  if (!command.trim() || /[\r\n\u0085\u2028\u2029\0]/u.test(command)) { throw new Error('Expected a nonempty single-line command'); }
+  return { hooks: { PreToolUse: [{ matcher: '.*', hooks: [{ type: 'command', command }] }] } };
 }

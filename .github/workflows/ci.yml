@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -13,14 +17,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node: [20.x, 22.x]
+        node: [20.x, 22.x, 24.x]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: npm install --ignore-scripts --no-audit --no-fund
+          cache: npm
+      - run: npm ci
       - run: npm run check
       - run: npm run scan
+      - name: Core evaluation budget
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run bench -- --core-only
       - run: npm pack --dry-run --ignore-scripts

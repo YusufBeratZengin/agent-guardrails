@@ -1,5 +1,5 @@
 export default [{
-  ignores: ['node_modules/**', 'coverage/**', 'is/**'],
+  ignores: ['node_modules/**', 'coverage/**', 'is/**', '.tmp-test/**'],
 }, {
   files: ['**/*.mjs'],
   languageOptions: { ecmaVersion: 2022, sourceType: 'module' },

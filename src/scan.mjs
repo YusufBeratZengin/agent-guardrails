@@ -15,7 +15,7 @@ export function scan(target, rule) {
     if (stat.isSymbolicLink()) { return; }
     if (stat.isDirectory()) {
       for (const entry of fs.readdirSync(file).sort()) {
-        if (!['.git', 'node_modules', 'coverage', 'is'].includes(entry)) { visit(path.join(file, entry)); }
+        if (!['.git', 'node_modules', 'coverage', '.tmp-test', 'is'].includes(entry)) { visit(path.join(file, entry)); }
       }
     } else if (stat.isFile()) {
       // Bounded memory and overlap preserve tokens/assignments across chunks.

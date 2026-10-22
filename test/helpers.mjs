@@ -12,11 +12,11 @@ export function payload(tool_name = 'Bash', tool_input = { command: 'git status'
 let counter = 0;
 // All test I/O stays inside the authorized workspace, excluded from scans/git.
 export function fixture(t) {
-  const dir = path.resolve('is', `test-${process.pid}-${counter++}`);
-  if (path.dirname(dir) !== path.resolve('is')) { throw new Error('Fixture must stay inside workspace/is'); }
+  const dir = path.resolve('.tmp-test', `test-${process.pid}-${counter++}`);
+  if (path.dirname(dir) !== path.resolve('.tmp-test')) { throw new Error('Fixture must stay inside workspace/.tmp-test'); }
   fs.mkdirSync(dir, { recursive: true });
   t.after(() => {
-    if (path.dirname(dir) !== path.resolve('is')) { throw new Error('Unsafe fixture cleanup target'); }
+    if (path.dirname(dir) !== path.resolve('.tmp-test')) { throw new Error('Unsafe fixture cleanup target'); }
     fs.rmSync(dir, { recursive: true, force: true });
   });
   return dir;

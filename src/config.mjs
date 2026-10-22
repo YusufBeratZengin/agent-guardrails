@@ -64,11 +64,12 @@ function readConfig(file) {
 /** Nearest .git marker or config determines project root. No git subprocess.
  * @param {string} cwd */
 export function findProjectRoot(cwd) {
-  let current = path.resolve(cwd);
+  const api = cwd.startsWith('/') ? path.posix : path;
+  let current = api.resolve(cwd);
   for (;;) {
-    if (fs.existsSync(path.join(current, '.git')) || fs.existsSync(path.join(current, '.agent-guardrails.json'))) { return current; }
-    const parent = path.dirname(current);
-    if (parent === current) { return path.resolve(cwd); }
+    if (fs.existsSync(api.join(current, '.git')) || fs.existsSync(api.join(current, '.agent-guardrails.json'))) { return current; }
+    const parent = api.dirname(current);
+    if (parent === current) { return api.resolve(cwd); }
     current = parent;
   }
 }
@@ -77,6 +78,6 @@ export function findProjectRoot(cwd) {
 export function loadConfig(cwd, home = os.homedir()) {
   const projectRoot = findProjectRoot(cwd);
   const userFile = path.join(home, '.agent-guardrails.json');
-  const projectFile = path.join(projectRoot, '.agent-guardrails.json');
+  const projectFile = (cwd.startsWith('/') ? path.posix : path).join(projectRoot, '.agent-guardrails.json');
   return { config: resolveConfig(readConfig(userFile), userFile === projectFile ? {} : readConfig(projectFile)), projectRoot, home };
 }

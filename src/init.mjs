@@ -4,8 +4,9 @@ import { settingsSnippet } from './adapters/claude-code.mjs';
 import { isObject } from './util.mjs';
 
 /** Merge without clobbering unrelated settings; backups use exclusive creation.
- * @param {string} cwd */
-export function writeSettings(cwd) {
+ * @param {string} cwd @param {string} [command] */
+export function writeSettings(cwd, command) {
+  const entry = settingsSnippet(command).hooks.PreToolUse[0];
   const dir = path.join(cwd, '.claude');
   const target = path.join(dir, 'settings.json');
   if (fs.existsSync(dir) && fs.lstatSync(dir).isSymbolicLink()) { throw new Error('Settings directory symlink refused'); }
@@ -23,8 +24,7 @@ export function writeSettings(cwd) {
   if (!isObject(hooks)) { throw new Error('Invalid hooks object'); }
   const pre = hooks.PreToolUse === undefined ? [] : hooks.PreToolUse;
   if (!Array.isArray(pre)) { throw new Error('Invalid PreToolUse array'); }
-  const entry = settingsSnippet().hooks.PreToolUse[0];
-  const installed = pre.some(group => isObject(group) && group.matcher === entry.matcher && Array.isArray(group.hooks) && group.hooks.some(h => isObject(h) && h.type === 'command' && h.command === 'agent-guardrails hook'));
+  const installed = pre.some(group => isObject(group) && group.matcher === entry.matcher && Array.isArray(group.hooks) && group.hooks.some(h => isObject(h) && h.type === 'command' && h.command === entry.hooks[0].command));
   if (installed) { return { changed: false, backup: false }; }
   const updated = { ...settings, hooks: { ...hooks, PreToolUse: [...pre, entry] } };
   fs.mkdirSync(dir, { recursive: true });

@@ -12,7 +12,9 @@ import { explanations } from '../src/explain.mjs';
 import { scanSecrets } from '../src/guards/secrets.mjs';
 
 const help = `agent-guardrails 0.1.0
-  init [--write]     Print Claude settings; --write merges with backup
+  init [--write] [--command <string>]  Print settings; --write merges with backup
+                     Without CLI on PATH: --command "npx --no-install agent-guardrails hook"
+                     Or --command 'node "/absolute/path/bin/agent-guardrails.mjs" hook'
   hook               Read Claude PreToolUse JSON from stdin
   test '<json>'      Dry-run, redacted decision + Claude output (no audit)
   scan <path>        Scan secrets; exits 0 clean, 1 findings, 2 error
@@ -41,8 +43,15 @@ export async function main(args, io = { stdin: process.stdin, stdout: process.st
   try {
     if (cmd === '--version' && !rest.length) { print('0.1.0'); return 0; }
     if ((!cmd || cmd === '--help') && !rest.length) { io.stdout.write(help); return 0; }
-    if (cmd === 'init' && (rest.length === 0 || (rest.length === 1 && rest[0] === '--write'))) {
-      print(rest.length ? writeSettings(io.cwd()) : settingsSnippet()); return 0;
+    if (cmd === 'init') {
+      let write = false;
+      let command;
+      for (let i = 0; i < rest.length; i++) {
+        if (rest[i] === '--write' && !write) { write = true; }
+        else if (rest[i] === '--command' && command === undefined && rest[i + 1] !== undefined) { command = rest[++i]; }
+        else { throw new Error('Invalid init option'); }
+      }
+      print(write ? writeSettings(io.cwd(), command) : settingsSnippet(command)); return 0;
     }
     if (cmd === 'explain' && rest.length === 1 && Object.hasOwn(explanations, rest[0])) {
       print(explanations[/** @type {keyof typeof explanations} */ (rest[0])]); return 0;

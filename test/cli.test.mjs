@@ -69,6 +69,42 @@ test('init prints by default; write merges with exact backup and is idempotent',
   fs.writeFileSync(target, '{bad');
   assert.equal((await run(['init', '--write'], { cwd: dir })).status, 2); assert.equal(fs.readFileSync(target, 'utf8'), '{bad');
 });
+
+test('init --command preserves custom commands in print and idempotent writes', async t => {
+  const dir = fixture(t);
+  for (const command of ['npx --no-install agent-guardrails hook', 'node "/absolute path/bin/agent-guardrails.mjs" hook', '  node "C:/tools/guardrails.mjs" hook  ']) {
+    const printed = await run(['init', '--command', command], { cwd: dir });
+    assert.equal(printed.status, 0, printed.stderr);
+    assert.equal(JSON.parse(printed.stdout).hooks.PreToolUse[0].hooks[0].command, command);
+    assert.equal((await run(['init', '--command', command, '--write'], { cwd: dir })).status, 0);
+    const settings = JSON.parse(fs.readFileSync(path.join(dir, '.claude/settings.json'), 'utf8'));
+    assert.equal(settings.hooks.PreToolUse.at(-1).hooks[0].command, command);
+    assert.equal(JSON.parse((await run(['init', '--write', '--command', command], { cwd: dir })).stdout).changed, false);
+  }
+});
+
+test('init rejects missing, empty, multiline, duplicate and unknown command options without writing', async t => {
+  const dir = fixture(t);
+  for (const args of [
+    ['--command'], ['--command', ''], ['--command', '  '], ['--command', 'echo one\necho two'],
+    ['--command', 'echo one\recho two'], ['--command', 'a\u2028b'], ['--command', 'a\0b'],
+    ['--command', 'one', '--command', 'two'], ['--write', '--write'], ['--unknown'],
+  ]) {
+    assert.equal((await run(['init', '--write', ...args], { cwd: dir })).status, 2);
+    assert.equal(fs.existsSync(path.join(dir, '.claude')), false);
+  }
+});
+
+test('scan skips new scratch and legacy directories but scans explicit files', t => {
+  const dir = fixture(t);
+  for (const name of ['.tmp-test', 'is']) {
+    fs.mkdirSync(path.join(dir, name));
+    const target = path.join(dir, name, 'synthetic.txt');
+    fs.writeFileSync(target, `API_KEY=${mixed}`);
+    assert.equal(scan(target, config.rules.secrets).length, 1);
+  }
+  assert.deepEqual(scan(dir, config.rules.secrets), []);
+});
 test('init fresh write and scan clean/findings/error; scan ignores hook mode', async t => {
   const dir = fixture(t);
   assert.equal((await run(['init', '--write'], { cwd: dir })).status, 0);

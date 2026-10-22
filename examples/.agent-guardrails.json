@@ -1,0 +1,15 @@
+{
+  "$schema": "../schema/config.schema.json",
+  "rules": {
+    "secrets": { "mode": "deny" },
+    "destructive": { "mode": "deny", "allowForceWithLease": false },
+    "outbound": { "mode": "ask", "allMcp": true },
+    "pii": { "mode": "deny", "detectors": ["generic"] },
+    "protect-paths": {
+      "mode": "deny",
+      "paths": ["~/.ssh", "~/.aws", "~/.gnupg"],
+      "askPaths": [".agent-guardrails.json", "~/.agent-guardrails.json"]
+    }
+  },
+  "audit": { "enabled": false }
+}

@@ -1,0 +1,40 @@
+name: False positive / bypass report
+description: Report rule coverage with synthetic data. Report exploitable vulnerabilities privately through the Security tab.
+title: "rules: "
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Coverage issue
+      options:
+        - False positive
+        - Missed detection within documented scope
+        - Documented limitation needing clarification
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Package, Node.js, agent, OS and shell versions
+    validations:
+      required: true
+  - type: textarea
+    id: payload
+    attributes:
+      label: Synthetic agent-guardrails test payload and redacted configuration
+      description: Do not include credentials, personal data or production transcripts. Use private vulnerability reporting for exploitable bypasses.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Expected versus observed decision
+      description: Include the actual redacted test output and affected rule/code.
+    validations:
+      required: true
+  - type: textarea
+    id: regression
+    attributes:
+      label: Suggested coverage
+      description: Suggest true-positive and false-positive cases, if known.
