@@ -1,0 +1,7 @@
+export const explanations = {
+  secrets: 'Detects credential formats and high-entropy credential assignments in writes, edits, shell commands and MCP inputs. Blocks literal credential-file reads. Tune entropyThreshold/minLength, allowValues, and allowReadPaths. Allowlisting a read does not exempt content scanning.',
+  destructive: 'Detects destructive Git operations, broad recursive deletion, recursive chmod 777 and download-to-shell pipelines. Local rm -rf node_modules is allowed. allowForceWithLease exempts that push from this rule, while outbound still asks. Shell inspection is heuristic; see docs/threat-model.md.',
+  outbound: 'Asks on each matching tool name or command. Case-insensitive globs support * and ?. Defaults cover sending, publishing, merging, spending, pushes and common network clients. allMcp asks for every MCP call. No approvals are cached.',
+  pii: 'Optional, off by default. Scans all MCP arguments and commands classified as external. Generic detector covers email, heuristic phone, Luhn cards and mod-97 IBAN. Add trusted locale detectors through the programmatic API. Heuristics can miss or misclassify data.',
+  'protect-paths': 'Denies writes under configured paths using normalized, segment-aware POSIX/Windows paths. Covers file tools and common literal shell writes. Paths are lexical: aliases, symlinks, code interpreters and computed destinations require sandbox enforcement.',
+};
