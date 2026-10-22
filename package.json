@@ -1,0 +1,26 @@
+{
+  "name": "agent-guardrails",
+  "version": "0.1.0",
+  "description": "Auditable, local safety hooks for AI coding agents.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": { "agent-guardrails": "bin/agent-guardrails.mjs" },
+  "exports": { ".": "./src/index.mjs", "./schema": "./schema/config.schema.json" },
+  "files": ["bin", "src", "schema", "docs", ".githooks", "README.md", "README.tr.md", "LICENSE", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md"],
+  "scripts": {
+    "test": "node scripts/test.mjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm test",
+    "bench": "node scripts/bench.mjs",
+    "scan": "node bin/agent-guardrails.mjs scan ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "eslint": "^9.39.0",
+    "typescript": "^5.9.0"
+  },
+  "license": "MIT",
+  "author": "Yusuf Berat Zengin",
+  "keywords": ["claude-code", "coding-agents", "hooks", "security", "guardrails"]
+}

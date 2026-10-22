@@ -1,0 +1,14 @@
+node_modules/
+coverage/
+is/
+*.tgz
+*.jsonl
+.env*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+.agent-guardrails.json
+.claude/settings.local.json
+*.bak
+*.bak.*

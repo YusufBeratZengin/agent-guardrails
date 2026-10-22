@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "agent-guardrails configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "rules": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "secrets": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "id": { "const": "secrets" },
+            "mode": { "$ref": "#/$defs/mode" },
+            "entropyThreshold": { "type": "number", "minimum": 0, "maximum": 8, "default": 3.5 },
+            "minLength": { "type": "integer", "minimum": 8, "maximum": 4096, "default": 20 },
+            "allowValues": { "$ref": "#/$defs/strings" },
+            "allowReadPaths": { "$ref": "#/$defs/strings" }
+          }
+        },
+        "destructive": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "id": { "const": "destructive" },
+            "mode": { "$ref": "#/$defs/mode" },
+            "allowForceWithLease": { "type": "boolean", "default": true }
+          }
+        },
+        "outbound": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "id": { "const": "outbound" },
+            "mode": { "$ref": "#/$defs/mode" },
+            "allMcp": { "type": "boolean", "default": false },
+            "toolPatterns": { "$ref": "#/$defs/strings" },
+            "commandPatterns": { "$ref": "#/$defs/strings" }
+          }
+        },
+        "pii": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "id": { "const": "pii" },
+            "mode": { "$ref": "#/$defs/mode" },
+            "detectors": { "$ref": "#/$defs/strings" }
+          }
+        },
+        "protect-paths": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "id": { "const": "protect-paths" },
+            "mode": { "$ref": "#/$defs/mode" },
+            "paths": { "$ref": "#/$defs/strings" }
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "path": { "type": "string", "minLength": 1, "maxLength": 4096, "default": ".agent-guardrails.audit.jsonl" }
+      }
+    }
+  },
+  "$defs": {
+    "mode": { "enum": ["deny", "ask", "warn", "off"] },
+    "strings": { "type": "array", "maxItems": 256, "items": { "type": "string", "maxLength": 1024 } }
+  }
+}
