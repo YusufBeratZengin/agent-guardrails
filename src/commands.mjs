@@ -13,7 +13,7 @@ export function commands(source) {
   const pushCommand = () => { pushWord(); if (words.length) { result.push(words); words = []; } };
   for (let i = 0; i < source.length; i++) {
     const c = source[i];
-    const windowsWord = /^[a-z]:(?:$|[\\/])/i.test(word) || word.startsWith('\\') || (word.length === 0 && c === '\\' && source[i + 1] === '\\');
+    const windowsWord = /^[a-z]:(?:$|[\\/])/i.test(word) || /(?:^|[\s"'])[a-z]:[^\s"']*$/i.test(word) || word.startsWith('\\') || (word.length === 0 && c === '\\' && source[i + 1] === '\\');
     if (c === '\\' && !windowsWord && quote !== "'" && /[\s"';&|()$`\\]/.test(source[i + 1] ?? '') && source[i + 1] !== undefined) {
       // Preserve path separators before letters; unescape shell punctuation.
       word += source[++i]; started = true; continue;
@@ -36,6 +36,52 @@ export function commands(source) {
   return result;
 }
 
+/** Executable name: basename without a Windows extension, lower-cased.
+ * @param {string} word */
+function exeName(word) {
+  return (word.replace(/\\/g, '/').split('/').at(-1) ?? '').replace(/\.(?:exe|cmd|bat)$/i, '').toLowerCase();
+}
+
+/** Options that consume the following word, per wrapper.
+ * @type {Record<string, RegExp>} */
+const wrapperValueOptions = {
+  sudo: /^-[ugCDhprRtTU]$/, doas: /^-[uC]$/, env: /^-[uCS]$/, nice: /^-n$/, ionice: /^-[cnp]$/,
+  timeout: /^-[sk]$/, xargs: /^-[adEIiLnPs]$/, stdbuf: /^-[ioe]$/, setsid: /^$/, time: /^-[fo]$/,
+};
+const wrapperNames = new Set(['sudo', 'doas', 'env', 'command', 'exec', 'nohup', '&', 'call', 'builtin', 'nice', 'ionice', 'timeout', 'time', 'xargs', 'stdbuf', 'setsid']);
+
+/** Strip leading assignments and wrapper executables together with their own
+ * options, so `sudo -u root rm` and `timeout 5 rm` expose the real command.
+ * Mutates and normalizes `words[0]`. @param {string[]} words */
+function unwrap(words) {
+  for (;;) {
+    while (words.length && /^[a-z_]\w*=/i.test(words[0])) { words.shift(); }
+    if (!words.length) { return; }
+    const name = exeName(words[0]);
+    if (!wrapperNames.has(name)) { words[0] = exeName(words[0]); return; }
+    words.shift();
+    for (;;) {
+      const next = words[0];
+      if (next === undefined) { return; }
+      if (next === '--') { words.shift(); break; }
+      if (!next.startsWith('-')) {
+        if (name === 'env' && /^[a-z_]\w*=/i.test(next)) { words.shift(); continue; }
+        break;
+      }
+      words.shift();
+      if (wrapperValueOptions[name]?.test(next)) { words.shift(); }
+    }
+    // timeout takes a duration before the command.
+    if (name === 'timeout' && words.length) { words.shift(); }
+  }
+}
+
+/** Inline-script flag of a shell: -c, -lc, -xec, PowerShell -Command, cmd /c or /k.
+ * @param {string} word */
+function inlineFlag(word) {
+  return (/^-[a-z]{1,4}$/i.test(word) && /c/i.test(word)) || /^-command$/i.test(word) || /^\/[ck]$/i.test(word);
+}
+
 /** Strip common executable wrappers and Git global options; inspect literal
  * sh -c / powershell -Command payloads and substitutions without executing them.
  * @param {string} source @param {number} [depth] @returns {string[][]} */
@@ -46,11 +92,11 @@ export function invocations(source, depth = 0) {
   const result = [];
   for (const raw of parsed) {
     const words = [...raw];
-    while (words.length && (/^[a-z_][\w]*=/i.test(words[0]) || /^(sudo|env|command|exec|nohup|&|call)$/i.test(words[0]))) { words.shift(); }
+    unwrap(words);
     if (!words.length) { continue; }
-    words[0] = words[0].replace(/\\/g, '/').split('/').at(-1)?.replace(/\.exe$/i, '') ?? '';
+    if (/^eval$/i.test(words[0])) { result.push(...invocations(words.slice(1).join(' '), depth + 1)); continue; }
     if (/^(ba|da|z|k)?sh$|^(powershell|pwsh|cmd)$/i.test(words[0])) {
-      const flag = words.findIndex(w => /^(-[clc]+|-command|\/c)$/i.test(w));
+      const flag = words.findIndex((w, i) => i > 0 && inlineFlag(w));
       if (flag >= 0) { result.push(...invocations(words.slice(flag + 1).join(' '), depth + 1)); }
     }
     if (/^git$/i.test(words[0])) {

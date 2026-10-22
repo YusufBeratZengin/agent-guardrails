@@ -22,12 +22,20 @@ export function inspectDestructive(source, ctx, rule) {
     if (exe.toLowerCase() === 'git') {
       if (sub === 'reset' && args.some(a => a === '--hard' || a.startsWith('--hard='))) { add('git-reset-hard', 'Hard reset discards work.'); }
       if (sub === 'clean' && args.some(a => /^-[^-]*f/.test(a) || a === '--force') && !args.some(a => a === '--dry-run' || /^-[^-]*n/.test(a))) { add('git-clean', 'Forced clean deletes untracked work.'); }
-      if (sub === 'push' && args.some(a => a === '--force' || a === '-f' || /^-[^-]*f/.test(a) || a.startsWith('--force=') || a.startsWith('+') || (!rule.allowForceWithLease && a.startsWith('--force-with-lease')))) { add('git-force-push', 'Force push can overwrite shared history.'); }
+      if (sub === 'push' && args.some(a => a === '--force' || a === '--mirror' || a === '-f' || /^-[^-]*f/.test(a) || a.startsWith('--force=') || a.startsWith('+') || (!rule.allowForceWithLease && a.startsWith('--force-with-lease')))) { add('git-force-push', 'Force push can overwrite shared history.'); }
       if (sub === 'checkout' && args.includes('--') && args.slice(args.indexOf('--') + 1).some(a => ['.', ':/', '*'].includes(a))) { add('git-checkout-all', 'Checkout discards working tree changes.'); }
       if (sub === 'stash' && args.some(a => a === 'drop' || a === 'clear')) { add('git-stash-delete', 'Deleting stashes discards saved work.'); }
     }
-    const rm = /^(rm|rmdir)$/i.test(exe) && lower.some(a => /^-[^-]*r/i.test(a) || a === '--recursive');
-    const ps = /^(remove-item|ri)$/i.test(exe) && lower.some(a => /^-recurse(?::\$?true)?$/.test(a));
+    // PowerShell accepts any unambiguous parameter prefix: -r, -rec, -Recurse.
+    const psRecurse = /^-r(?:e(?:c(?:u(?:r(?:s(?:e)?)?)?)?)?)?(?::\$?true)?$/i;
+    const rm = (/^(rm|rmdir)$/i.test(exe) && lower.some(a => /^-[^-]*r/i.test(a) || a === '--recursive'))
+      || (/^(rd|rmdir)$/i.test(exe) && lower.includes('/s'));
+    const ps = /^(remove-item|ri|del|erase|rd|rmdir|rm)$/i.test(exe) && lower.some(a => psRecurse.test(a));
+    if (/^find$/i.test(exe) && lower.includes('-delete')) {
+      const stop = lower.findIndex((a, i) => i > 0 && /^[-!]/.test(a));
+      const roots = words.slice(1, stop < 0 ? undefined : stop);
+      if (!roots.length || changesDirectory || roots.some(p => broadPath(p, ctx))) { add('broad-recursive-delete', 'Recursive deletion targets a broad, external, or unresolved path.'); }
+    }
     if (/^(del|erase)$/i.test(exe) && lower.includes('/s')) { add('windows-recursive-delete', 'Recursive del requires review.'); }
     if (rm || ps) {
       const targets = recursiveTargets(words);
@@ -36,7 +44,18 @@ export function inspectDestructive(source, ctx, rule) {
     if (/^chmod$/i.test(exe) && words.some(a => /^-[^-]*R/.test(a) || a === '--recursive') && words.includes('777')) { add('chmod-world-writable', 'Recursive mode 777 makes files writable by everyone.'); }
   }
   // Includes literal shell wrappers. Quoted examples can conservatively match.
-  if (/\b(?:curl|wget)\b[^\n;]*\|\s*(?:(?:sudo|env)\s+)*(?:\/(?:usr\/)?bin\/)?(?:ba|da|z|k)?sh\b/i.test(source)) { add('download-execute', 'Piping a download into a shell executes unreviewed code.'); }
+  const fetcher = String.raw`(?:curl|wget|iwr|irm|invoke-webrequest|invoke-restmethod|new-object\s+net\.webclient)`;
+  const pipeline = [
+    // curl ... | sh
+    String.raw`\b(?:curl|wget)\b[^\n;]*\|\s*(?:(?:sudo|env)\s+)*(?:\/(?:usr\/)?bin\/)?(?:ba|da|z|k)?sh\b`,
+    // bash <(curl ...), sh -c "$(curl ...)", eval "$(wget ...)", source <(curl ...)
+    String.raw`\b(?:(?:ba|da|z|k)?sh|eval|source)\b[^\n;|&]*(?:<\(|\$\(|\x60)\s*` + fetcher + String.raw`\b`,
+    // iwr ... | iex, irm ... | Invoke-Expression
+    String.raw`\b` + fetcher + String.raw`\b[^\n;]*\|\s*(?:iex|invoke-expression)\b`,
+    // iex (irm ...), iex (New-Object Net.WebClient).DownloadString(...)
+    String.raw`\b(?:iex|invoke-expression)\b[^\n;|]*` + fetcher + String.raw`\b`,
+  ];
+  if (pipeline.some(p => new RegExp(p, 'i').test(source))) { add('download-execute', 'Piping a download into a shell executes unreviewed code.'); }
   return found;
 }
 
