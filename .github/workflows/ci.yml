@@ -26,7 +26,8 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm run check
+      - name: Lint, typecheck and tests with coverage
+        run: npm run check
       - run: npm run scan
       - name: Core evaluation budget
         if: matrix.os == 'ubuntu-latest'

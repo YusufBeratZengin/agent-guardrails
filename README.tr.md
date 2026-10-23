@@ -1,32 +1,53 @@
 # agent-guardrails
 
-[![CI](https://github.com/YusufBeratZengin/agent-guardrails/actions/workflows/ci.yml/badge.svg)](https://github.com/YusufBeratZengin/agent-guardrails/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-green.svg)](package.json)
+[![CI](https://github.com/YusufBeratZengin/agent-guardrails/actions/workflows/ci.yml/badge.svg)](https://github.com/YusufBeratZengin/agent-guardrails/actions/workflows/ci.yml) [![Lisans: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-green.svg)](package.json) [![npm sürümü](https://img.shields.io/npm/v/agent-guardrails.svg)](https://www.npmjs.com/package/agent-guardrails)
 
-Yapay zekâ ile kod yazarken sık yapılan tehlikeli işlemleri yakalayan yerel hook paketi. Anahtar ve token sızıntılarını, iş kaybına yol açan komutları engeller; gönderim ve yayın gibi dış işlemlerden önce kullanıcıya sorar. Node.js 20 ve üzeriyle çalışır. Çalışma zamanında ek bağımlılığı yoktur, ağa istek atmaz ve telemetri toplamaz.
+Yapay zekâ ile kod yazan ajanlarda yaygın anahtar sızıntılarını ve tehlikeli komutları yakalayan, dış işlemlerden önce kullanıcıya soran yerel hook paketi.
+
+Node.js 20+ · ESM · Çalışma zamanında ek bağımlılık yok · Ağ isteği ve telemetri yok
 
 [English](README.md) · [Ayarlar](docs/configuration.md) · [Sınırlar](docs/threat-model.md) · [Örnekler](docs/examples.md)
 
+![Gerçek CLI demosu: outbound kuralı git push öncesinde kullanıcı onayı ister](docs/demo.svg)
+
+`node examples/demo.mjs` çıktısının ilk örneği; incelenen komutlar çalıştırılmaz. [Tam çıktı aşağıda](#bir-engelleme-nasıl-görünür).
+
+## Neden agent-guardrails?
+
+- **Komutla birlikte içeriği de denetler.** Araç girdilerinde anahtar biçimlerini tarar; zincirlenmiş komutları ve açıkça yazılmış sarmalayıcı komutları tehlikeli işlemler açısından inceler.
+- **Her dış işlemde yeniden sorar.** Eşleşen gönderim, push ve yayın çağrılarında yeni bir `ask` kararı döndürür; onay arayüzünü ajan yönetir.
+- **Kurallar yerel ve incelenebilirdir.** Ayarlanabilir beş kural, maskelenmiş bulgular ve isteğe bağlı JSONL günlüğü sunar; çalışma zamanında ek bağımlılık veya dış servis kullanmaz.
+
 ## Bir dakikada kurulum
 
-**İlk sürüm yayımlandıktan sonra**, projenizin kök klasöründe paketi kurun ve yerel bağımlılığı kullanacak hook komutunu kaydedin:
+Node.js 20 veya üzeri kuruluysa, deponun kök klasöründe aşağıdaki komutları POSIX shell ya da PowerShell ile çalıştırın. Paket kurmanız gerekmez:
+
+```sh
+node bin/agent-guardrails.mjs init
+node examples/demo.mjs
+node bin/agent-guardrails.mjs explain outbound
+```
+
+`init`, Claude Code ayarını dosyaya yazmadan gösterir. Demo üç sentetik araç çağrısını değerlendirir ve sırasıyla `ask`, `deny`, `deny` kararı verir; incelenen komutları çalıştırmaz.
+
+Hook'u **bu depoda** etkinleştirmek için depo kökünden çalışacak komutu ayara ekleyin:
+
+```sh
+node bin/agent-guardrails.mjs init --write --command "node bin/agent-guardrails.mjs hook"
+```
+
+`--write`, diğer ayarları korur ve mevcut dosyayı değiştirmeden önce `settings.json.bak.<zaman>` yedeği oluşturur. Aynı komutla tekrar kurulum değişiklik yaratmaz. Claude Code'u yeniden başlatıp `/hooks` ile kurulumu doğrulayın. Başka projede kurulum için [shell ve PATH örneklerine](docs/examples.md) bakın.
+
+### İlk npm sürümü yayımlandıktan sonra
+
+Projenizin kök klasöründe paketi kurun ve yerel bağımlılığı kullanacak hook komutunu kaydedin:
 
 ```sh
 npm install --save-dev agent-guardrails
 npx agent-guardrails init --write --command "npx --no-install agent-guardrails hook"
 ```
 
-Hook'un çalıştığı ortamda geliştirme bağımlılığı kurulu kalmalı. `--no-install`, hook çalışırken eksik paketin indirilmesini önler. Varsayılan ayar `agent-guardrails hook` kullanır; komut hook sürecinin PATH ortamında bulunmalı. `--command` ile proje içindeki paketi veya mutlak bir yolu seçebilirsiniz.
-
-**Bugün çalışan yol, kaynak koddan kullanım:** bu deponun klasöründe, kurulum yapmadan:
-
-```sh
-node bin/agent-guardrails.mjs init
-node bin/agent-guardrails.mjs init --command 'node "/absolute/path/agent-guardrails/bin/agent-guardrails.mjs" hook'
-```
-
-Mutlak script yolunu kendi deponuzun yoluyla değiştirin. Seçtiğiniz ayar parçasını `.claude/settings.json` dosyasına eklemek için `--write` kullanın. CLI'ı mutlak yoluyla başka bir projenin kökünden çalıştırarak oraya da kurabilirsiniz. `init` yalnızca ayarı gösterir; `--write` diğer ayarları korur, mevcut dosyayı değiştirmeden önce `settings.json.bak.<zaman>` yedeği oluşturur. Aynı komutla tekrar kurulum yapmak değişiklik yaratmaz. Özel komut aynen kaydedilir; boş olamaz ve tek satır olmalıdır. Claude Code'u yeniden başlatıp `/hooks` üzerinden kurulumu doğrulayın. [Shell ve PATH örnekleri](docs/examples.md).
-
-Yukarıdaki npm komutları ilk yayından sonrası içindir; bu depo paketin zaten yayımlandığını iddia etmez. Kaynak kod komutları ve sentetik demo bugün, npm'e bağlanmadan çalışır.
+Hook'un çalıştığı ortamda geliştirme bağımlılığı kurulu kalmalı. `--no-install`, hook çalışırken eksik paketin indirilmesini önler. Varsayılan ayar `agent-guardrails hook` kullanır; komut hook sürecinin PATH ortamında bulunmalı. `--command` ile verilen komut aynen kaydedilir; boş olamaz ve tek satır olmalıdır. npm komutları ilk yayından sonrası içindir; npm rozeti yayın yapılana kadar “not found” gösterebilir. Yukarıdaki kaynak kod komutları bugün, npm'e bağlanmadan çalışır.
 
 ## Bir engelleme nasıl görünür?
 
@@ -36,7 +57,10 @@ Bu deponun kökünde [sentetik demoyu](examples/demo.mjs) çalıştırın:
 node examples/demo.mjs
 ```
 
-Demo her payload için bellekte `agent-guardrails test` çağırır. İncelenen komutları çalıştırmaz, sentetik anahtarı dosyaya yazmaz. Gerçek çıktı:
+Demo her payload için bellekte `agent-guardrails test` çağırır. İncelenen komutları çalıştırmaz, sentetik anahtarı dosyaya yazmaz.
+
+<details>
+<summary>Tam CLI çıktısı: dış işlem onayı, tehlikeli komut engeli, sır tespiti</summary>
 
 ```text
 git push
@@ -100,6 +124,8 @@ Write with a synthetic AWS key
   }
 }
 ```
+
+</details>
 
 Çıktıda hem kural bulguları hem Claude Code'a gönderilecek JSON bulunur. Üçü de geçerli değerlendirme olduğundan `test` çıkış kodu 0'dır; engelleme kararı JSON içinde iletilir. PowerShell'de stdin kullanımı için [yerel nesne örneğine](docs/examples.md#powershell-dry-run) bakın.
 
@@ -184,9 +210,12 @@ Claude Code `PreToolUse` desteği hazırdır; protokol [ayrı adapter modülünd
 npm run check
 npm run scan
 npm run bench
+npm run demo
 ```
 
-Kontrollerden önce geliştirme araçlarını [katkı rehberindeki](CONTRIBUTING.md) gibi kurun. Testler Node'un kendi test altyapısını ve `.tmp-test/` altında geçici dosyaları kullanır. ESLint ve TypeScript yalnız geliştirme bağımlılığıdır. CI, Ubuntu ve Windows üzerinde Node 20/22/24 ile lint, JSDoc tip kontrolü, test ve sır taraması çalıştırır.
+Kontrollerden önce geliştirme araçlarını [katkı rehberindeki](CONTRIBUTING.md) gibi kurun. Testler Node'un kendi test altyapısını ve `.tmp-test/` altında geçici dosyaları kullanır. `npm test`, ek bir kapsam servisine ihtiyaç duymadan yerelde ve her CI işinde satır, dal ve fonksiyon kapsamını gösterir. ESLint ve TypeScript yalnız geliştirme bağımlılığıdır. CI, Ubuntu ve Windows üzerinde Node 20/22/24 ile lint, JSDoc tip kontrolü, test ve sır taraması çalıştırır. CodeQL; push, pull request ve haftalık taramalarda JavaScript/TypeScript kodunu inceler. Dependabot, geliştirme bağımlılıklarını ve GitHub Actions sürümlerini haftalık kontrol eder.
+
+`npm run demo`, demodaki ilk gerçek CLI değerlendirmesinden `docs/demo.svg` görselini yeniden üretir. Testler görselin ve iki README'deki çıktıların güncel kaldığını denetler.
 
 Ubuntu CI, süreç açılışı hariç ısınmış çekirdek değerlendirmesinde p95 için 10 ms sınırı uygular. `npm run bench`, çekirdek süresini yeni süreç median/p95 değerlerinden ayrı raporlar. Kısıtlı ortamlarda `npm run bench -- --core-only` alt süreç açmadan yalnızca çekirdeği ölçer. Yerel ölçümde çekirdek p95 değeri 0,142 ms çıktı; sandbox yeni süreç ölçümünü engelledi. [Performans kanıtları ve ölçüm sınırları](docs/threat-model.md#performance-evidence). Disk, antivirüs, Node açılışı ve işletim sistemi toplam süreyi etkiler; donanımdan bağımsız gecikme garantisi verilmez.
 

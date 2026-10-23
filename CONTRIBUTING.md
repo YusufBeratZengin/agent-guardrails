@@ -9,7 +9,9 @@ npm run scan
 npm run bench
 ```
 
-`npm run check` runs ESLint, strict JSDoc type checking with `tsc --noEmit`, and the built-in Node test suite. Tests use a single process with in-memory CLI streams, do not execute inspected commands, do not access the network, and create fixtures only under ignored `.tmp-test/`. Check supported Node 20/22/24 versions on Ubuntu/Windows through CI. Ubuntu CI also enforces the 10 ms warmed core p95 budget. The matrix is configuration, not evidence that a particular local change has already passed it.
+`npm run check` runs ESLint, strict JSDoc type checking with `tsc --noEmit`, and the built-in Node test suite. `npm test` enables `--experimental-test-coverage` and prints line, branch and function coverage in the terminal and CI logs. The report excludes test files; it includes the CLI, imported source, demo example and demo generator. Tests use a single process with in-memory CLI streams, do not execute inspected commands, do not access the network, and create fixtures only under ignored `.tmp-test/`. Check supported Node 20/22/24 versions on Ubuntu/Windows through CI. Ubuntu CI also enforces the 10 ms warmed core p95 budget. The matrix is configuration, not evidence that a particular local change has already passed it.
+
+After changing demo output, run `npm run demo` to regenerate `docs/demo.svg` and update the transcripts in both READMEs. The generator captures the first case of `node examples/demo.mjs` through the real CLI entry with in-memory streams. A temporary fixture under `.tmp-test/` selects the default policy and isolates personal/project configuration, so the image is reproducible across checkouts. Tests reject a stale image or transcript.
 
 Keep guards pure; adapt tool input and wire output separately. Add table-driven true-positive and false-positive cases, including chained commands and both path conventions, for behavior changes. Regression tests should fail before the fix. For new key formats construct obviously synthetic tokens from fragments; never paste live or plausible user credentials, personal data, or captured production payloads. Do not put real secrets in allowlists or logs.
 

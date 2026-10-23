@@ -29,7 +29,8 @@
     "CODE_OF_CONDUCT.md"
   ],
   "scripts": {
-    "test": "node scripts/test.mjs",
+    "test": "node --experimental-test-coverage scripts/test.mjs",
+    "demo": "node scripts/make-demo.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm test",

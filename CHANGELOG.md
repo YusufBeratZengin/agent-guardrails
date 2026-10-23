@@ -6,19 +6,22 @@ All notable changes are documented here following [Keep a Changelog 1.1](https:/
 
 ### Added
 
+- Reproducible terminal SVG demo (`npm run demo`) embedded in both READMEs, with a regression check against real CLI output.
+- npm version badges, three-point rationale and verified source-first quick start in English and Turkish.
+- Dependency-free Node test coverage reporting in local runs and CI, plus a weekly JavaScript/TypeScript CodeQL workflow.
 - Public npm package metadata, repository/support links, discovery keywords, provenance configuration and check/scan gates before publication.
 - Tag-triggered npm trusted publishing in `release.yml`, a tag/version check and owner setup instructions in CONTRIBUTING.
 - `init --command <string>` for verbatim, nonempty single-line local or absolute-path hook commands, with print/write/idempotence tests.
 - Real CLI demo output for outbound confirmation, hard-reset denial and a synthetic AWS-key write; five-rule terminal summary and CI/MIT/Node badges in both READMEs.
 - Destructive detection and table-driven true/false-positive tests for primary-branch force deletion, combined reflog expiry/GC, reference deletion, Docker pruning, device overwrites, filesystem formatting, shredding, external truncation and disk redirection.
-- Bug, feature and false-positive/bypass issue forms, PR checklist, Contributor Covenant 2.1, monthly npm development dependency and GitHub Actions updates, and private vulnerability reporting setup guidance.
+- Bug, feature and false-positive/bypass issue forms, PR checklist, Contributor Covenant 2.1, weekly npm development dependency and GitHub Actions updates, and private vulnerability reporting setup guidance.
 - Copyable Claude settings, strict team configuration, POSIX pre-commit hook and GitHub Actions scan examples, with schema validation tests.
 - Ubuntu CI core benchmark gate at 10 ms p95 and documented local timing evidence with hardware and measurement limits.
 - Regression checks keeping the English/Turkish README demo blocks equal to real CLI output and their section structure aligned.
 
 ### Changed
 
-- Lead quick start with the post-release project-local npm/npx path while retaining currently working source instructions and explaining PATH requirements.
+- Lead quick start with currently working source commands; retain the post-release project-local npm/npx path and explain PATH requirements.
 - Use `.tmp-test/` for test fixtures and scan exclusions, retaining the legacy scratch-directory exclusion for compatibility.
 - Clarify the additional content scanning, chained-command checks, outbound confirmation and audit logging provided alongside host permissions.
 
@@ -30,7 +33,7 @@ All notable changes are documented here following [Keep a Changelog 1.1](https:/
 - Exclude informational reflog/GC calls from combined recovery deletion detection and inspect disk redirection even for help/version output.
 - Explain child-process benchmark failures without hiding the subprocess error code.
 
-## [0.1.0] - 2026-10-22
+## [0.1.0] - 2026-10-23
 
 ### Added
 
