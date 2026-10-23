@@ -42,5 +42,6 @@ export function command(ctx) {
 /** @param {import('./types.mjs').Context} ctx */
 export function writePaths(ctx) {
   if (!/^(Write|Edit|MultiEdit|NotebookEdit)$/i.test(ctx.toolName)) { return []; }
-  return [ctx.input.file_path, ctx.input.notebook_path].filter(v => typeof v === 'string');
+  const edits = Array.isArray(ctx.input.edits) ? ctx.input.edits.flatMap(edit => isObject(edit) && typeof edit.file_path === 'string' ? [edit.file_path] : []) : [];
+  return [ctx.input.file_path, ctx.input.notebook_path, ...edits].filter(v => typeof v === 'string');
 }

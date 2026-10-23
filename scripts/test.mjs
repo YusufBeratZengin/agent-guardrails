@@ -9,3 +9,6 @@ import '../test/config-engine-adapter.test.mjs';
 import '../test/cli.test.mjs';
 import '../test/examples.test.mjs';
 import '../test/readme.test.mjs';
+import '../test/integrations.test.mjs';
+import '../test/sarif.test.mjs';
+import '../test/git-scan.test.mjs';

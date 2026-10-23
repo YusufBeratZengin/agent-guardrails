@@ -1,0 +1,35 @@
+name: Agent Guardrails
+description: Scan the regular files changed by a PR for secrets, without executing PR code
+author: YusufBeratZengin
+branding:
+  icon: shield
+  color: blue
+inputs:
+  base:
+    description: Full base commit SHA (defaults to pull_request.base.sha)
+    required: false
+  head:
+    description: Full head commit SHA (defaults to pull_request.head.sha)
+    required: false
+  working-directory:
+    description: Git repository to scan, relative to the workspace
+    default: '.'
+outputs:
+  sarif-file:
+    description: Absolute path to the redacted SARIF report, including when findings fail the step
+    value: ${{ steps.scan.outputs.sarif-file }}
+  files-with-findings:
+    description: Number of changed files containing findings
+    value: ${{ steps.scan.outputs.files-with-findings }}
+runs:
+  using: composite
+  steps:
+    - name: Scan PR changes
+      id: scan
+      shell: bash
+      env:
+        GUARDRAILS_ACTION_PATH: ${{ github.action_path }}
+        GUARDRAILS_BASE: ${{ inputs.base }}
+        GUARDRAILS_HEAD: ${{ inputs.head }}
+        GUARDRAILS_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: node "$GUARDRAILS_ACTION_PATH/scripts/action-scan.mjs"

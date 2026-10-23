@@ -180,9 +180,9 @@ Varsayılan olarak `.agent-guardrails.json` ve `~/.agent-guardrails.json` dosyal
 
 ```text
 agent-guardrails init [--write] [--command <string>]
-agent-guardrails hook
+agent-guardrails hook [--agent claude-code|codex|gemini|cursor]
 agent-guardrails test '<json>'
-agent-guardrails scan <yol>
+agent-guardrails scan <yol> [--format json|sarif]
 agent-guardrails explain <kural-id>
 ```
 
@@ -190,15 +190,26 @@ agent-guardrails explain <kural-id>
 
 `scan` için çıkış kodları: **0 temiz, 1 bulgu, 2 hata**. Hook modu kapalı olsa da sır taraması yapar; `.env` gibi gitignore'daki dosyaları da tarar. Sembolik bağlantıları ve `.git`, `node_modules`, `coverage`, `.tmp-test` ile eski geçici çalışma klasörlerini atlar. Bulgu çıktısında dosya yolu, kural kodu ve tamamen maskelenmiş önizleme bulunur; yakalanan değer yazılmaz. Git geçmişini veya yalnızca stage'deki içeriği taramaz. [Pre-commit örneği](docs/examples.md#pre-commit) depodadır.
 
+`--format sarif`, GitHub code scanning için maskelenmiş, dosya düzeyinde bulgular içeren SARIF 2.1.0 çıktısı üretir. Varsayılan JSON çıktısı ve çıkış kodları değişmez. [Composite GitHub Action](docs/integrations/github-actions.md), PR'da değişen normal dosyaların head sürümündeki tüm içeriğini tarar, bulgu varsa başarısız olur ve SARIF raporu üretir. Rapor yükleme isteğe bağlıdır; deponun code scanning izinlerini gerektirir.
+
 ## Bilmeniz gereken sınırlar
 
 Bu paket ek bir güvenlik katmanıdır; **sandbox değildir**. Kararlı bir ajan komutu gizleyebilir, bir script üzerinden işlem yaptırabilir, ayarları değiştirebilir veya kapsanmayan bir araç kullanabilir. Yol denetimi metinsel normalizasyon yapar; symlink, hardlink ve dosya sistemi yarışlarını çözmez. Komut ayrıştırıcı Bash, cmd veya PowerShell yorumlayıcısı değildir. Kişisel veri denetimi eksik yakalayabilir veya yanlış alarm verebilir. Başka bir programın okuyup yüklediği dosyanın içeriği önceden incelenmez. Modele araç çağrısı olmadan eklenen dosyalar hook'u tetiklemeyebilir.
 
 Ajanın sandbox ve izin ayarlarını, ağ kısıtlarını, sınırlı yetkileri ve insan incelemesini açık tutun. Ayar dosyalarını güvenilmeyen değişikliklerden koruyun. Ayrıntı: [tehdit modeli](docs/threat-model.md).
 
-## Ajan desteği
+## Entegrasyonlar
 
-Claude Code `PreToolUse` desteği hazırdır; protokol [ayrı adapter modülündedir](src/adapters/claude-code.mjs). **Codex CLI desteği planlanmıştır.** Resmî belgelerde `ask` davranışı henüz desteklenmediği için eksik bir onay kapısı sunulmuyor; notify üzerinden engelleme varsayılmıyor. [Kaynaklar ve entegrasyon notları](docs/adapters.md).
+| Araç | Yöntem | Durum |
+| --- | --- | --- |
+| [Claude Code](docs/integrations/claude-code.md) | Yerel `PreToolUse` hook'u; `init` ayarları üretir | Birincil; engelleme ve etkileşimli onay |
+| [OpenAI Codex CLI](docs/integrations/codex.md) | Yerel `PreToolUse`, `hook --agent codex` | Destekleniyor; `ask` engellemeye çevrilir |
+| [Gemini CLI](docs/integrations/gemini.md) | Yerel `BeforeTool`, `hook --agent gemini` | Destekleniyor; `ask` engellemeye çevrilir |
+| [Cursor](docs/integrations/cursor.md) | Yerel `preToolUse`, `hook --agent cursor` | Destekleniyor; `ask` engellemeye çevrilir |
+| [Herhangi bir ajan](docs/integrations/pre-commit.md) | Git pre-commit ile çalışma ağacında sır taraması | Destekleniyor; yalnızca kaydedilmiş içerik |
+| [GitHub Actions](docs/integrations/github-actions.md) | Composite Action ile PR'da değişen dosyaların taranması ve isteğe bağlı SARIF yükleme | Hazır; öz sınama workflow'u eklendi |
+
+Rehberlerde kopyalanabilir ayarlar, doğrulama adımları ve alternatif kurulumlar bulunur. Varsayılan CLI/API protokolü Claude Code olarak kalır. Diğer adaptörler, seçilen hook sözleşmeleri aynı etkileşimli onayı sağlayamadığı için `ask` kararını engellemeye çevirir. Notify üzerinden engelleme veya otomatik onay varsayılmaz. Kurulu ajanınızın hook'u uyumlu değilse pre-commit/CI kullanın. [Adaptör sözleşmeleri ve sınırlar](docs/adapters.md).
 
 ## Günlük
 
@@ -217,7 +228,14 @@ Kontrollerden önce geliştirme araçlarını [katkı rehberindeki](CONTRIBUTING
 
 `npm run demo`, demodaki ilk gerçek CLI değerlendirmesinden `docs/demo.svg` görselini yeniden üretir. Testler görselin ve iki README'deki çıktıların güncel kaldığını denetler.
 
-Ubuntu CI, süreç açılışı hariç ısınmış çekirdek değerlendirmesinde p95 için 10 ms sınırı uygular. `npm run bench`, çekirdek süresini yeni süreç median/p95 değerlerinden ayrı raporlar. Kısıtlı ortamlarda `npm run bench -- --core-only` alt süreç açmadan yalnızca çekirdeği ölçer. Yerel ölçümde çekirdek p95 değeri 0,142 ms çıktı; sandbox yeni süreç ölçümünü engelledi. [Performans kanıtları ve ölçüm sınırları](docs/threat-model.md#performance-evidence). Disk, antivirüs, Node açılışı ve işletim sistemi toplam süreyi etkiler; donanımdan bağımsız gecikme garantisi verilmez.
+`npm run bench`, 200 ısınma çağrısından sonra sekiz farklı güvenli/riskli komut biçimiyle 1.000 sentetik çağrıyı ölçer; incelenen komutlar çalıştırılmaz. Windows, Node v24.21.0 ve AMD Ryzen 7 6800H üzerinde 2026-10-24 ölçümü:
+
+| Ölçüm | Medyan | p95 |
+| --- | --- | --- |
+| Yalnızca kural değerlendirmesi | 0,121 ms | 0,362 ms |
+| Aynı süreçte tam hook yolu (JSON, ayar okuma, değerlendirme, çıktı) | 0,463 ms | 0,716 ms |
+
+Bu değerler Node açılışını ve ajanın süreç zamanlamasını içermez. `npm run bench -- --process`, ayrıca 1.000 yeni CLI sürecini ölçer; sandbox alt süreçleri engellediği için bu mod burada ölçülemedi. `--core-only`, CI'daki 10 ms p95 sınırını korur. Disk, antivirüs, kural ayarları ve donanım süreleri etkiler. [Ölçüm sınırları](docs/threat-model.md#performance-evidence).
 
 ## Sık sorulanlar
 

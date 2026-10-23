@@ -6,6 +6,10 @@ All notable changes are documented here following [Keep a Changelog 1.1](https:/
 
 ### Added
 
+- Native Codex CLI, Gemini CLI and Cursor hook adapters with explicit denial for policy `ask`, plus copyable integration guides and agent-independent pre-commit/CI fallbacks.
+- Dependency-free composite GitHub Action for immutable PR changed-file scanning, redacted SARIF outputs and Ubuntu/Windows self-tests.
+- `scan --format sarif` for SARIF 2.1.0 reports, retaining default JSON output and scan exit codes.
+- Hook latency benchmark over 1,000 synthetic calls, reporting median/p95 for core evaluation and the full same-process hook path, with optional fresh-process timing.
 - Reproducible terminal SVG demo (`npm run demo`) embedded in both READMEs, with a regression check against real CLI output.
 - npm version badges, three-point rationale and verified source-first quick start in English and Turkish.
 - Dependency-free Node test coverage reporting in local runs and CI, plus a weekly JavaScript/TypeScript CodeQL workflow.
@@ -21,6 +25,7 @@ All notable changes are documented here following [Keep a Changelog 1.1](https:/
 
 ### Changed
 
+- Include the Action runner and benchmark in strict JSDoc type checking; link integration coverage and refreshed benchmark evidence from both READMEs.
 - Lead quick start with currently working source commands; retain the post-release project-local npm/npx path and explain PATH requirements.
 - Use `.tmp-test/` for test fixtures and scan exclusions, retaining the legacy scratch-directory exclusion for compatibility.
 - Clarify the additional content scanning, chained-command checks, outbound confirmation and audit logging provided alongside host permissions.

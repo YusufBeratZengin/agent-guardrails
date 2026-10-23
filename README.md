@@ -184,9 +184,9 @@ By default, writes to `.agent-guardrails.json` and `~/.agent-guardrails.json` re
 
 ```text
 agent-guardrails init [--write] [--command <string>]
-agent-guardrails hook
+agent-guardrails hook [--agent claude-code|codex|gemini|cursor]
 agent-guardrails test '<json>'
-agent-guardrails scan <path>
+agent-guardrails scan <path> [--format json|sarif]
 agent-guardrails explain <rule-id>
 ```
 
@@ -194,17 +194,26 @@ agent-guardrails explain <rule-id>
 
 `scan` exits **0 clean, 1 findings, 2 error**. It checks secrets regardless of the hook's mode, including ignored credential files. It skips symlinks and `.git`, `node_modules`, `coverage`, `.tmp-test` and legacy scratch directories. Findings include relative filenames, rule codes and a fully redacted preview, never matched values. It scans file content, not Git history or only the staged index. See the [pre-commit example](docs/examples.md#pre-commit).
 
+`--format sarif` emits SARIF 2.1.0 with redacted, file-level findings for GitHub code scanning; JSON remains the default and exit codes stay the same. The [composite GitHub Action](docs/integrations/github-actions.md) scans full head contents of regular files changed by a PR, fails on findings, and outputs a SARIF report. Upload is optional and requires the repository's code scanning permissions.
+
 ## Threat model
 
 This is defense in depth, **not a sandbox**. It catches common mistakes in visible tool inputs. A determined agent can obfuscate commands, run a script that performs hidden actions, change config/hooks, or use an uncovered tool. Literal path checks do not resolve symlinks, hardlinks or filesystem races. Shell parsing is heuristic; it does not implement Bash, cmd or PowerShell. PII detection is incomplete. File contents read by arbitrary programs are not inspected before upload. File mentions injected directly into model context may bypass tool hooks.
 
 Keep host sandboxing, least privilege, credential isolation, network restrictions and human review enabled. Never auto-approve an entire session because a clean hook returned. See [coverage and limitations](docs/threat-model.md) before relying on a rule.
 
-## Agent support
+## Integrations
 
-Claude Code `PreToolUse` is implemented in [`src/adapters/claude-code.mjs`](src/adapters/claude-code.mjs), using the [official contract](https://code.claude.com/docs/en/hooks#pretooluse-decision-control). It returns `deny`/`ask` in `hookSpecificOutput`; clean calls abstain. No deprecated top-level decision fields or automatic approvals.
+| Tool | How | Status |
+| --- | --- | --- |
+| [Claude Code](docs/integrations/claude-code.md) | Native `PreToolUse` hook; `init` generates settings | Primary; deny/interactive ask |
+| [OpenAI Codex CLI](docs/integrations/codex.md) | Native `PreToolUse`, `hook --agent codex` | Supported; ask becomes deny |
+| [Gemini CLI](docs/integrations/gemini.md) | Native `BeforeTool`, `hook --agent gemini` | Supported; ask becomes deny |
+| [Cursor](docs/integrations/cursor.md) | Native `preToolUse`, `hook --agent cursor` | Supported; ask becomes deny |
+| [Any agent](docs/integrations/pre-commit.md) | Git pre-commit working-tree secret scan | Supported; saved content only |
+| [GitHub Actions](docs/integrations/github-actions.md) | Composite PR changed-file scan + optional SARIF upload | Implemented; self-test workflow included |
 
-**Codex CLI: planned.** Its documented hooks currently lack the `ask` behavior this package requires. No Codex adapter or notify-based enforcement is shipped. See [integration notes and sources](docs/adapters.md).
+Each guide includes copyable configuration, verification and fallback instructions. Claude Code remains the default CLI/API protocol. The other adapters deliberately block `ask` decisions because their selected hook contracts cannot provide the same interactive confirmation. No notify-based enforcement or automatic approval is assumed. Use pre-commit/CI when your installed host lacks a compatible hook. See [adapter contracts and limits](docs/adapters.md).
 
 ## Audit log
 
@@ -223,7 +232,14 @@ Install development tools as described in [CONTRIBUTING.md](CONTRIBUTING.md) bef
 
 `npm run demo` regenerates `docs/demo.svg` from the first real CLI evaluation in the demo. Tests check the image and both README transcripts for drift.
 
-Ubuntu CI enforces a 10 ms p95 budget for warmed core evaluation, excluding process startup. `npm run bench` reports warmed policy time separately from fresh process median/p95; disk, antivirus, Node startup and host scheduling affect total latency. In restricted environments, `npm run bench -- --core-only` avoids child processes and measures only policy evaluation. The local core p95 was 0.142 ms; fresh-process measurement was blocked by the sandbox. See [performance evidence and measurement limits](docs/threat-model.md#performance-evidence). No hardware-independent latency guarantee is claimed.
+`npm run bench` measures 1,000 synthetic commands across eight safe/risky command shapes after 200 warmups; inspected commands never run. On Windows, Node v24.21.0, AMD Ryzen 7 6800H (2026-10-24):
+
+| Measurement | Median | p95 |
+| --- | --- | --- |
+| Policy evaluation only | 0.121 ms | 0.362 ms |
+| Full hook path in one process (JSON, config I/O, evaluation, output) | 0.463 ms | 0.716 ms |
+
+These measurements exclude Node startup and host scheduling. `npm run bench -- --process` additionally measures 1,000 fresh CLI processes; that mode was not measured here because the sandbox blocks child processes. `--core-only` retains the 10 ms p95 CI budget. Disk, antivirus, policy configuration and hardware affect latency. See [measurement limits](docs/threat-model.md#performance-evidence).
 
 ## FAQ
 

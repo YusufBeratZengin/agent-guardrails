@@ -1,0 +1,67 @@
+name: Action self-test
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  action:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build a synthetic PR history
+        id: fixture
+        shell: bash
+        run: |
+          mkdir -p .tmp-test/action-repo
+          cd .tmp-test/action-repo
+          git init
+          git config user.name 'Guardrails self-test'
+          git config user.email 'self-test@example.invalid'
+          printf 'hello\n' > sample.txt
+          git add sample.txt
+          git commit -m base
+          echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          printf 'clean edit\n' > sample.txt
+          git add sample.txt
+          git commit -m clean
+          echo "clean=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          node -e "require('fs').writeFileSync('sample.txt', ['AK', 'IA', 'A1B2C3D4E5F6G7H8'].join(''))"
+          git add sample.txt
+          git commit -m synthetic-finding
+          echo "finding=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: ./
+        id: clean
+        with:
+          working-directory: .tmp-test/action-repo
+          base: ${{ steps.fixture.outputs.base }}
+          head: ${{ steps.fixture.outputs.clean }}
+      - uses: ./
+        id: finding
+        continue-on-error: true
+        with:
+          working-directory: .tmp-test/action-repo
+          base: ${{ steps.fixture.outputs.base }}
+          head: ${{ steps.fixture.outputs.finding }}
+      - name: Verify failure and redacted SARIF
+        shell: bash
+        env:
+          FINDING_OUTCOME: ${{ steps.finding.outcome }}
+          FINDING_REPORT: ${{ steps.finding.outputs.sarif-file }}
+          CLEAN_REPORT: ${{ steps.clean.outputs.sarif-file }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          assert.equal(process.env.FINDING_OUTCOME, 'failure');
+          const text = fs.readFileSync(process.env.FINDING_REPORT, 'utf8');
+          const report = JSON.parse(text);
+          assert.equal(report.version, '2.1.0');
+          assert.equal(report.runs[0].results[0].ruleId, 'secrets/aws-access-key');
+          assert.ok(!text.includes(['AK', 'IA', 'A1B2C3D4E5F6G7H8'].join('')));
+          assert.equal(JSON.parse(fs.readFileSync(process.env.CLEAN_REPORT, 'utf8')).runs[0].results.length, 0);
+          JS

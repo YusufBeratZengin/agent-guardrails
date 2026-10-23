@@ -4,20 +4,22 @@ import path from 'node:path';
 import { isObject } from '../src/util.mjs';
 import { loadConfig } from '../src/config.mjs';
 import { evaluate } from '../src/engine.mjs';
-import { decode, encode, failure, settingsSnippet } from '../src/adapters/claude-code.mjs';
+import { failure, settingsSnippet } from '../src/adapters/claude-code.mjs';
+import { decode, encode } from '../src/adapters/agents.mjs';
 import { writeSettings } from '../src/init.mjs';
 import { audit } from '../src/audit.mjs';
 import { scan } from '../src/scan.mjs';
 import { explanations } from '../src/explain.mjs';
 import { scanSecrets } from '../src/guards/secrets.mjs';
+import { sarif } from '../src/sarif.mjs';
 
 const help = `agent-guardrails 0.1.0
   init [--write] [--command <string>]  Print settings; --write merges with backup
                      Without CLI on PATH: --command "npx --no-install agent-guardrails hook"
                      Or --command 'node "/absolute/path/bin/agent-guardrails.mjs" hook'
-  hook               Read Claude PreToolUse JSON from stdin
+  hook [--agent claude-code|codex|gemini|cursor]  Read host hook JSON from stdin
   test '<json>'      Dry-run, redacted decision + Claude output (no audit)
-  scan <path>        Scan secrets; exits 0 clean, 1 findings, 2 error
+  scan <path> [--format json|sarif]  Scan secrets; exits 0 clean, 1 findings, 2 error
   explain <rule-id>  Explain a rule
   --help | --version
 `;
@@ -56,22 +58,24 @@ export async function main(args, io = { stdin: process.stdin, stdout: process.st
     if (cmd === 'explain' && rest.length === 1 && Object.hasOwn(explanations, rest[0])) {
       print(explanations[/** @type {keyof typeof explanations} */ (rest[0])]); return 0;
     }
-    if ((cmd === 'hook' && !rest.length) || (cmd === 'test' && rest.length === 1)) {
+    if ((cmd === 'hook' && (!rest.length || (rest.length === 2 && rest[0] === '--agent' && ['claude-code', 'codex', 'gemini', 'cursor'].includes(rest[1])))) || (cmd === 'test' && rest.length === 1)) {
+      const agent = /** @type {import('../src/adapters/agents.mjs').Agent} */ (cmd === 'hook' && rest.length ? rest[1] : 'claude-code');
       const raw = cmd === 'hook' ? await readStdin(io.stdin) : rest[0];
       if (Buffer.byteLength(raw) > 4 * 1024 * 1024) { throw new Error('Input size limit exceeded'); }
       const payload = JSON.parse(raw);
       if (!isObject(payload) || typeof payload.cwd !== 'string') { throw new Error('Invalid input'); }
       const { config, projectRoot, home } = loadConfig(payload.cwd, io.home);
-      const result = evaluate(decode(payload, { projectRoot, home }), config);
+      const context = decode(payload, agent, { projectRoot, home });
+      const result = evaluate(context, config);
       if (cmd === 'hook') { audit(result, config, projectRoot); }
-      print(cmd === 'hook' ? encode(result) : { ...result, output: encode(result) }); return 0;
+      print(cmd === 'hook' ? encode(result, agent) : { ...result, output: encode(result, agent) }); return 0;
     }
-    if (cmd === 'scan' && rest.length === 1) {
+    if (cmd === 'scan' && (rest.length === 1 || (rest.length === 3 && rest[1] === '--format' && ['json', 'sarif'].includes(rest[2])))) {
       const { config } = loadConfig(io.cwd(), io.home);
       // scan always checks secrets, even if hook mode is off/warn/ask.
       const results = scan(path.resolve(io.cwd(), rest[0]), config.rules.secrets);
       // File paths can themselves contain secrets: never echo them into output.
-      print({ filesWithFindings: results.length, findings: results.map(r => {
+      print(rest[2] === 'sarif' ? sarif(results, io.cwd(), config.rules.secrets) : { filesWithFindings: results.length, findings: results.map(r => {
         const relative = path.relative(io.cwd(), r.file);
         return { file: scanSecrets(relative, config.rules.secrets).length ? '[REDACTED PATH]' : relative, codes: r.findings.map(f => f.code), preview: '[REDACTED]' };
       }) });

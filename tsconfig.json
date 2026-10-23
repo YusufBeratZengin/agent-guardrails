@@ -10,5 +10,5 @@
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": ["src/**/*.mjs", "bin/**/*.mjs"]
+  "include": ["src/**/*.mjs", "bin/**/*.mjs", "scripts/action-scan.mjs", "scripts/bench.mjs"]
 }

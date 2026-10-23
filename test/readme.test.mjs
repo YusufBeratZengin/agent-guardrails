@@ -36,7 +36,7 @@ test('README sections stay aligned between English and Turkish', () => {
     ['Rules', 'Hangi kurallar var?'],
     ['Why not just permissions.deny?', 'Neden yalnızca permissions.deny yeterli değil?'],
     ['Examples', 'Örnekler'], ['Configuration', 'Ayarlar'], ['CLI', 'Komutlar'],
-    ['Threat model', 'Bilmeniz gereken sınırlar'], ['Agent support', 'Ajan desteği'],
+    ['Threat model', 'Bilmeniz gereken sınırlar'], ['Integrations', 'Entegrasyonlar'],
     ['Audit log', 'Günlük'], ['Development', 'Geliştirme'], ['FAQ', 'Sık sorulanlar'],
     ['Contributing', 'Katkı'], ['License', 'Lisans'],
   ];

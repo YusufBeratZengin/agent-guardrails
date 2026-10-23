@@ -1,5 +1,7 @@
 # Examples
 
+For host-specific settings and verified protocol limits, see the [integration guides](../README.md#integrations). The [composite GitHub Action](integrations/github-actions.md) scans PR changed-file contents without installing or running PR code and can emit SARIF. The workflow below remains the separate whole-working-tree scan example.
+
 ## Claude settings
 
 `agent-guardrails init` prints:

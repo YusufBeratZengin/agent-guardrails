@@ -10,8 +10,12 @@ Malformed input, invalid config, input/nesting limits or failed audit I/O use ex
 
 The generated matcher is `.*` so it covers PowerShell, file tools and MCP calls. The hook command is a locally installed executable; no network package resolution occurs during a hook invocation. No PermissionRequest, PostToolUse, async or HTTP hook semantics are assumed.
 
-## Codex CLI — planned
+## Codex CLI, Gemini CLI and Cursor
 
-No Codex adapter is included in 0.1.0. The [official hooks reference](https://learn.chatgpt.com/docs/hooks#pretooluse) documents pre-tool denial, but currently states that `permissionDecision: "ask"` is unsupported: an unsupported response can fail the hook while the tool call continues. Reusing the Claude adapter would therefore give a misleading outbound confirmation guarantee.
+[`src/adapters/agents.mjs`](../src/adapters/agents.mjs) owns normalization and output for these hosts. Select it with `hook --agent codex|gemini|cursor`. The existing public `decode`/`encode` exports and default `hook` still use the Claude Code protocol.
 
-The [official configuration reference](https://developers.openai.com/codex/config-reference/) describes `notify` as notifications. This package does not treat it as an authorization gate. Future support needs a separately verified decision contract, tool coverage, an explicit confirmation strategy, and its own adapter tests. The shared pure guards are available for trusted integrations today; hosts must supply their own enforcement.
+All three adapters convert policy `ask` to denial. They never claim interactive approval. Audit records retain the underlying policy decision (`ask`), while the host receives denial. Codex and Gemini clean/warn results abstain; Cursor requires `permission: "allow"` to continue through this hook. Keep host sandboxing and permissions enabled.
+
+Copyable settings, verified source links, tool normalization and host failure limits live in the [Codex](integrations/codex.md), [Gemini](integrations/gemini.md) and [Cursor](integrations/cursor.md) guides. These are protocol-tested adapters; live host enforcement must be verified in your installed version. Unknown tools have no assumed file/shell semantics. Native hooks do not cover every agent-internal action, direct context attachment or Tab completion.
+
+For hosts without compatible hook support, use [git pre-commit](integrations/pre-commit.md) and [CI](integrations/github-actions.md). They check saved secrets, not command execution. No notification-only hook is treated as an authorization gate.
