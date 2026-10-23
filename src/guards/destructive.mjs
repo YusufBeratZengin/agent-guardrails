@@ -16,12 +16,15 @@ export function inspectDestructive(source, ctx, rule) {
   const found = [];
   /** @param {string} code @param {string} message */
   const add = (code, message) => found.push(finding('destructive', code, message));
-  const expiresReflog = calls.some(w => w[0] === 'git' && w[1] === 'reflog' && w[2] === 'expire' && (w.includes('--expire=now') || (w.includes('--expire') && w[w.indexOf('--expire') + 1] === 'now')));
-  const prunesNow = calls.some(w => w[0] === 'git' && w[1] === 'gc' && (w.includes('--prune=now') || (w.includes('--prune') && w[w.indexOf('--prune') + 1] === 'now')));
+  const activeCalls = calls.filter(w => !w.includes('--help') && !w.includes('--version'));
+  const expiresReflog = activeCalls.some(w => w[0] === 'git' && w[1] === 'reflog' && w[2] === 'expire' && (w.includes('--expire=now') || (w.includes('--expire') && w[w.indexOf('--expire') + 1] === 'now')));
+  const prunesNow = activeCalls.some(w => w[0] === 'git' && w[1] === 'gc' && (w.includes('--prune=now') || (w.includes('--prune') && w[w.indexOf('--prune') + 1] === 'now')));
   if (expiresReflog && prunesNow) { add('git-recovery-delete', 'Expiring reflogs and pruning now removes recovery data.'); }
   for (const words of calls) {
     const [exe, sub, ...args] = words;
     const lower = words.map(w => w.toLowerCase());
+    // Shell redirection takes effect even when the executable only prints help.
+    if (words.some((w, i) => w === '>' && /^\/dev\/sd[^/]*$/.test(words[i + 1] ?? ''))) { add('disk-redirection', 'Redirecting output to a disk device destroys data.'); }
     if (words.includes('--help') || words.includes('--version')) { continue; }
     if (exe.toLowerCase() === 'git') {
       if (sub === 'reset' && args.some(a => a === '--hard' || a.startsWith('--hard='))) { add('git-reset-hard', 'Hard reset discards work.'); }
@@ -48,7 +51,6 @@ export function inspectDestructive(source, ctx, rule) {
       }
       if (zero && (!targets.length || changesDirectory || targets.some(p => broadPath(p, ctx)))) { add('external-truncate', 'Truncating a broad, external, or unresolved path destroys file data.'); }
     }
-    if (words.some((w, i) => w === '>' && /^\/dev\/sd[^/]*$/.test(words[i + 1] ?? ''))) { add('disk-redirection', 'Redirecting output to a disk device destroys data.'); }
     // PowerShell accepts any unambiguous parameter prefix: -r, -rec, -Recurse.
     const psRecurse = /^-r(?:e(?:c(?:u(?:r(?:s(?:e)?)?)?)?)?)?(?::\$?true)?$/i;
     const rm = (/^(rm|rmdir)$/i.test(exe) && lower.some(a => /^-[^-]*r/i.test(a) || a === '--recursive'))

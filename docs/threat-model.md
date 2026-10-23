@@ -26,7 +26,7 @@ All entries use the configured `destructive` mode (default `deny`). Examples are
 | `git-checkout-all` | `git checkout -- .` | Checkout of a literal individual file |
 | `git-stash-delete` | Stash drop/clear | Stash list |
 | `git-primary-branch-delete` | `git branch -D main`, `master`, `trunk`; delete + force equivalents | `git branch -d feature`, `git branch -D feature` |
-| `git-recovery-delete` | `git reflog expire --expire=now` together with `git gc --prune=now` in one inspected command | Either alone or a non-now expiry; separate tool calls are not correlated |
+| `git-recovery-delete` | `git reflog expire --expire=now` together with `git gc --prune=now` in one inspected command | Either alone, help/version calls or a non-now expiry; separate tool calls are not correlated |
 | `git-update-ref-delete` | `git update-ref -d` / `--delete` | Updating a reference without deletion |
 | `docker-system-prune` | `docker system prune -a` / `--all` | `docker image ls`, prune without all |
 | `docker-volume-prune` | `docker volume prune -f` / `--force` | Volume list, prune without force |
@@ -34,7 +34,7 @@ All entries use the configured `destructive` mode (default `deny`). Examples are
 | `filesystem-format` | `mkfs*` executables | Help/version output, text passed to echo |
 | `file-shred` | `shred` | Help/version output, text passed to echo |
 | `external-truncate` | `truncate -s 0` (also size variants) on broad, external or unresolved paths | Literal file inside project; directory changes cause conservative detection |
-| `disk-redirection` | `> /dev/sd*`, including append redirection | File output, `/dev/null`; other device families are not covered by this redirection rule |
+| `disk-redirection` | `> /dev/sd*`, including append redirection and help/version output redirected to a device | File output, `/dev/null`; other device families are not covered by this redirection rule |
 | `broad-recursive-delete` | Recursive rm/PowerShell removal or find-delete of a broad/external path | `rm -rf node_modules` |
 | `windows-recursive-delete` | `del /s`, `erase /s` | Nonrecursive deletion |
 | `chmod-world-writable` | Recursive chmod 777 | Recursive chmod 755 |
@@ -65,3 +65,9 @@ Protect-paths inspects file tools, common literal mutator arguments and `>` redi
 - The audit omits input data by design. It cannot prove which exact payload a human reviewed, and it is not tamper-evident.
 
 Use OS permissions, agent sandboxing, separate service credentials, network controls and dedicated scanning in addition to these hooks. Keep code/config read-only to the agent when enforcement matters. Do not enable dangerous permission bypass modes solely because this package is installed.
+
+## Performance evidence
+
+On 2026-10-23, `npm run bench -- --core-only` measured a 0.068 ms mean and 0.142 ms p95 on Windows with Node v24.21.0 and an AMD Ryzen 7 6800H. The benchmark warms the engine for 200 evaluations, then times 1,000 evaluations of a `git status && npm test` payload with the default policy. These numbers cover policy evaluation only, excluding config I/O and process startup; other payloads and hardware can differ.
+
+Ubuntu CI runs the same core benchmark and fails if p95 exceeds 10 ms. The full `npm run bench` separately measures 25 fresh CLI processes and reports their median and p95, including startup and local I/O. This pass could not measure that median because the sandbox refused child-process creation. The supplied baseline was approximately 120 ms fresh-process wall time; it is contextual evidence, not a newly measured median. Run the full benchmark on the release machine and retain its Node/platform/CPU metadata before making a fresh-process latency claim. Disk, antivirus and host scheduling affect the result.

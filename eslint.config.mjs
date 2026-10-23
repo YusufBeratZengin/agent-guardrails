@@ -1,7 +1,7 @@
 export default [{
   ignores: ['node_modules/**', 'coverage/**', 'is/**', '.tmp-test/**'],
 }, {
-  files: ['**/*.mjs'],
+  files: ['**/*.{mjs,js}'],
   languageOptions: { ecmaVersion: 2022, sourceType: 'module' },
   rules: {
     'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],

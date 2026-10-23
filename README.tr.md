@@ -8,17 +8,11 @@ Yapay zekâ ile kod yazarken sık yapılan tehlikeli işlemleri yakalayan yerel 
 
 ## Bir dakikada kurulum
 
-**İlk sürüm yayımlandıktan sonra**, projenizin kök klasöründe:
-
-```sh
-npx agent-guardrails init --write
-```
-
-Tekrarlanabilir, proje içinde tutulan bir kurulum için yayımdan sonra:
+**İlk sürüm yayımlandıktan sonra**, projenizin kök klasöründe paketi kurun ve yerel bağımlılığı kullanacak hook komutunu kaydedin:
 
 ```sh
 npm install --save-dev agent-guardrails
-npx --no-install agent-guardrails init --write --command "npx --no-install agent-guardrails hook"
+npx agent-guardrails init --write --command "npx --no-install agent-guardrails hook"
 ```
 
 Hook'un çalıştığı ortamda geliştirme bağımlılığı kurulu kalmalı. `--no-install`, hook çalışırken eksik paketin indirilmesini önler. Varsayılan ayar `agent-guardrails hook` kullanır; komut hook sürecinin PATH ortamında bulunmalı. `--command` ile proje içindeki paketi veya mutlak bir yolu seçebilirsiniz.
@@ -194,7 +188,7 @@ npm run bench
 
 Kontrollerden önce geliştirme araçlarını [katkı rehberindeki](CONTRIBUTING.md) gibi kurun. Testler Node'un kendi test altyapısını ve `.tmp-test/` altında geçici dosyaları kullanır. ESLint ve TypeScript yalnız geliştirme bağımlılığıdır. CI, Ubuntu ve Windows üzerinde Node 20/22/24 ile lint, JSDoc tip kontrolü, test ve sır taraması çalıştırır.
 
-Ubuntu CI, süreç açılışı hariç ısınmış çekirdek değerlendirmesinde p95 için 10 ms sınırı uygular. `npm run bench`, çekirdek süresini yeni süreç median/p95 değerlerinden ayrı raporlar. Kısıtlı ortamlarda `npm run bench -- --core-only` alt süreç açmadan yalnızca çekirdeği ölçer. Görevde verilen önceki yeni süreç ölçümü yaklaşık 120 ms'dir; [ölçüm sınırlarına](docs/threat-model.md#performance-evidence) bakın. Disk, antivirüs, Node açılışı ve işletim sistemi toplam süreyi etkiler; donanımdan bağımsız gecikme garantisi verilmez.
+Ubuntu CI, süreç açılışı hariç ısınmış çekirdek değerlendirmesinde p95 için 10 ms sınırı uygular. `npm run bench`, çekirdek süresini yeni süreç median/p95 değerlerinden ayrı raporlar. Kısıtlı ortamlarda `npm run bench -- --core-only` alt süreç açmadan yalnızca çekirdeği ölçer. Yerel ölçümde çekirdek p95 değeri 0,142 ms çıktı; sandbox yeni süreç ölçümünü engelledi. [Performans kanıtları ve ölçüm sınırları](docs/threat-model.md#performance-evidence). Disk, antivirüs, Node açılışı ve işletim sistemi toplam süreyi etkiler; donanımdan bağımsız gecikme garantisi verilmez.
 
 ## Sık sorulanlar
 

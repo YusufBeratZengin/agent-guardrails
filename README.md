@@ -8,17 +8,11 @@ Local safety hooks for AI coding agents. Catch common secret leaks and destructi
 
 ## 60-second quick start
 
-**After the first release**, from your project root:
-
-```sh
-npx agent-guardrails init --write
-```
-
-For a repeatable project-local install after that release:
+**After the first release**, install in your project root and save a hook command that resolves the local dependency:
 
 ```sh
 npm install --save-dev agent-guardrails
-npx --no-install agent-guardrails init --write --command "npx --no-install agent-guardrails hook"
+npx agent-guardrails init --write --command "npx --no-install agent-guardrails hook"
 ```
 
 Keep the development dependency installed wherever the hook runs. `--no-install` avoids fetching packages during hook execution. The default snippet uses `agent-guardrails hook`, which must be on the hook process's PATH; `--command` explicitly selects a local or absolute-path command.
@@ -200,7 +194,7 @@ npm run bench
 
 Install development tools as described in [CONTRIBUTING.md](CONTRIBUTING.md) before running the checks. Tests use built-in `node:test`, with in-memory CLI streams and local temporary fixtures under `.tmp-test/`. ESLint and TypeScript are development-only; `tsc --noEmit` checks JSDoc in shipped code. GitHub Actions runs lint, typecheck, tests, and a repository secret scan on Node 20/22/24 on Ubuntu/Windows. [CONTRIBUTING.md](CONTRIBUTING.md) covers changes and release checks.
 
-Ubuntu CI enforces a 10 ms p95 budget for warmed core evaluation, excluding process startup. `npm run bench` reports warmed policy time separately from fresh process median/p95; disk, antivirus, Node startup and host scheduling affect total latency. In restricted environments, `npm run bench -- --core-only` avoids child processes and measures only policy evaluation. The task baseline reported about 120 ms fresh-process wall time; see [measurement limits](docs/threat-model.md#performance-evidence). No hardware-independent latency guarantee is claimed.
+Ubuntu CI enforces a 10 ms p95 budget for warmed core evaluation, excluding process startup. `npm run bench` reports warmed policy time separately from fresh process median/p95; disk, antivirus, Node startup and host scheduling affect total latency. In restricted environments, `npm run bench -- --core-only` avoids child processes and measures only policy evaluation. The local core p95 was 0.142 ms; fresh-process measurement was blocked by the sandbox. See [performance evidence and measurement limits](docs/threat-model.md#performance-evidence). No hardware-independent latency guarantee is claimed.
 
 ## FAQ
 

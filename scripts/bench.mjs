@@ -26,6 +26,7 @@ const samples = [];
 for (let i = 0; i < 25; i++) {
   const begin = performance.now();
   const result = spawnSync(process.execPath, ['bin/agent-guardrails.mjs', 'hook'], { input: JSON.stringify(payload), encoding: 'utf8' });
+  if (result.error) { throw new Error(`Benchmark subprocess unavailable (${result.error.code ?? 'unknown error'}); use --core-only to measure policy evaluation.`); }
   if (result.status !== 0) { throw new Error('Benchmark hook failed'); }
   samples.push(performance.now() - begin);
 }

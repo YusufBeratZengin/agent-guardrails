@@ -102,7 +102,7 @@ const config = resolveConfig({
 const result = evaluate({
   toolName: 'mcp__example__send',
   input: { content: 'SYNTHETIC-LOCAL-ID' },
-  cwd: '/project', projectRoot: '/project', home: '/home/example',
+  cwd: '/project', projectRoot: '/project', home: '/synthetic-home',
 }, config, [locale]);
 console.log(result.decision); // deny
 ```
