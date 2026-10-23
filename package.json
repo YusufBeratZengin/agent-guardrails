@@ -38,7 +38,7 @@
     "prepublishOnly": "npm run check && npm run scan"
   },
   "devDependencies": {
-    "@types/node": "^20.19.0",
+    "@types/node": "^26.6.5",
     "eslint": "^9.39.0",
     "typescript": "^5.9.0"
   },
