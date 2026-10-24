@@ -76,10 +76,49 @@ test('init --command preserves custom commands in print and idempotent writes', 
     const printed = await run(['init', '--command', command], { cwd: dir });
     assert.equal(printed.status, 0, printed.stderr);
     assert.equal(JSON.parse(printed.stdout).hooks.PreToolUse[0].hooks[0].command, command);
-    assert.equal((await run(['init', '--command', command, '--write'], { cwd: dir })).status, 0);
+    const written = await run(['init', '--command', command, '--write'], { cwd: dir });
+    assert.equal(written.status, 0, written.stderr);
     const settings = JSON.parse(fs.readFileSync(path.join(dir, '.claude/settings.json'), 'utf8'));
     assert.equal(settings.hooks.PreToolUse.at(-1).hooks[0].command, command);
     assert.equal(JSON.parse((await run(['init', '--write', '--command', command], { cwd: dir })).stdout).changed, false);
+  }
+});
+
+test('init preserves distinct exact backups when multiple writes share a timestamp', async t => {
+  const dir = fixture(t);
+  const timestamp = 1234567890000;
+  t.mock.method(Date, 'now', () => timestamp);
+  const settingsDir = path.join(dir, '.claude');
+  fs.mkdirSync(settingsDir);
+  const target = path.join(settingsDir, 'settings.json');
+  const original = '{ "permissions": { "deny": ["Read(.env)"] } }\n';
+  fs.writeFileSync(target, original);
+  const existingBackup = `settings.json.bak.${timestamp}`;
+  fs.writeFileSync(path.join(settingsDir, existingBackup), 'existing backup');
+  const expectedBackups = ['existing backup'];
+  for (const command of ['node first.mjs hook', 'node second.mjs hook', '  node "C:/tools/guardrails.mjs" hook  ']) {
+    expectedBackups.push(fs.readFileSync(target, 'utf8'));
+    const written = await run(['init', '--write', '--command', command], { cwd: dir });
+    assert.equal(written.status, 0, written.stderr);
+    assert.deepEqual(JSON.parse(written.stdout), { changed: true, backup: true });
+    assert.equal(JSON.parse(fs.readFileSync(target, 'utf8')).hooks.PreToolUse.at(-1).hooks[0].command, command);
+    const unchanged = await run(['init', '--write', '--command', command], { cwd: dir });
+    assert.equal(unchanged.status, 0, unchanged.stderr);
+    assert.deepEqual(JSON.parse(unchanged.stdout), { changed: false, backup: false });
+    const backups = fs.readdirSync(settingsDir).filter(name => name.startsWith('settings.json.bak.'));
+    assert.deepEqual(backups.map(name => fs.readFileSync(path.join(settingsDir, name), 'utf8')).sort(), [...expectedBackups].sort());
+  }
+  assert.equal(fs.readFileSync(path.join(settingsDir, existingBackup), 'utf8'), 'existing backup');
+});
+
+test('init option errors explain usage without echoing arguments', async () => {
+  for (const args of [['--command'], ['--write', '--write'], [`--unknown-${mixed}`]]) {
+    const result = await run(['init', ...args]);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /Invalid init option/);
+    assert.match(result.stderr, /init \[--write\] \[--command <string>\]/);
+    assert.ok(!result.stderr.includes(mixed));
   }
 });
 

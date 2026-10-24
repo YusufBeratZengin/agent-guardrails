@@ -24,6 +24,8 @@ const help = `agent-guardrails 0.1.0
   --help | --version
 `;
 
+class InitOptionError extends Error {}
+
 /** @param {AsyncIterable<Buffer|string>} stdin */
 async function readStdin(stdin) {
   /** @type {Buffer[]} */
@@ -51,7 +53,7 @@ export async function main(args, io = { stdin: process.stdin, stdout: process.st
       for (let i = 0; i < rest.length; i++) {
         if (rest[i] === '--write' && !write) { write = true; }
         else if (rest[i] === '--command' && command === undefined && rest[i + 1] !== undefined) { command = rest[++i]; }
-        else { throw new Error('Invalid init option'); }
+        else { throw new InitOptionError('Invalid init option'); }
       }
       print(write ? writeSettings(io.cwd(), command) : settingsSnippet(command)); return 0;
     }
@@ -82,8 +84,11 @@ export async function main(args, io = { stdin: process.stdin, stdout: process.st
       return results.length ? 1 : 0;
     }
     io.stderr.write(help); return 2;
-  } catch {
+  } catch (error) {
     if (cmd === 'hook') { const error = failure(); io.stderr.write(error.stderr); return error.exitCode; }
+    if (error instanceof InitOptionError) {
+      io.stderr.write('agent-guardrails: Invalid init option. Usage: init [--write] [--command <string>]. Each option may appear once; --command requires a value.\n'); return 2;
+    }
     io.stderr.write('agent-guardrails: invalid input/configuration or local I/O failure. No input values are echoed.\n'); return 2;
   }
 }

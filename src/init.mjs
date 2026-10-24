@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { settingsSnippet } from './adapters/claude-code.mjs';
 import { isObject } from './util.mjs';
 
@@ -28,7 +29,8 @@ export function writeSettings(cwd, command) {
   if (installed) { return { changed: false, backup: false }; }
   const updated = { ...settings, hooks: { ...hooks, PreToolUse: [...pre, entry] } };
   fs.mkdirSync(dir, { recursive: true });
-  if (original !== undefined) { fs.writeFileSync(`${target}.bak.${Date.now()}`, original, { flag: 'wx', mode: 0o600 }); }
+  // A timestamp alone can collide during fast consecutive writes or across processes.
+  if (original !== undefined) { fs.writeFileSync(`${target}.bak.${Date.now()}.${randomUUID()}`, original, { flag: 'wx', mode: 0o600 }); }
   // Write in place only after backup. Failures remain visible to the caller.
   fs.writeFileSync(target, `${JSON.stringify(updated, null, 2)}\n`, { flag: original === undefined ? 'wx' : 'w', mode: 0o600 });
   return { changed: true, backup: original !== undefined };
