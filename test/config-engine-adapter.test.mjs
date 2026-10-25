@@ -83,6 +83,8 @@ test('shell lexer and literal wrapper handling', () => {
   assert.deepEqual(commands('Remove-Item C:\\project\\build -Recurse')[0][1], 'C:\\project\\build');
   assert.equal(glob('mcp__example__SEND', '*send'), true);
   assert.equal(glob('a.b', 'a.b'), true); assert.equal(glob('axb', 'a.b'), false);
+  // A literal '*' in the value must not be consumed as a literal before the pattern's wildcard can match it.
+  assert.equal(glob('curl * https://x.example', 'curl *'), true); assert.equal(glob('*ab', '*b'), true);
   assert.equal(glob('a[b]', 'a[b]'), true); assert.equal(glob('ab', 'a?'), true);
   assert.equal(glob('a'.repeat(1000), '*a'.repeat(30) + 'b'), false);
 });

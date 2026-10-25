@@ -10,8 +10,8 @@ export function glob(value, pattern) {
   const match = pattern.toLowerCase();
   let i = 0; let p = 0; let star = -1; let retry = 0;
   while (i < input.length) {
-    if (match[p] === '?' || match[p] === input[i]) { i++; p++; }
-    else if (match[p] === '*') { star = p++; retry = i; }
+    if (match[p] === '*') { star = p++; retry = i; }
+    else if (match[p] === '?' || match[p] === input[i]) { i++; p++; }
     else if (star >= 0) { p = star + 1; i = ++retry; }
     else { return false; }
   }
