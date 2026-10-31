@@ -39,3 +39,24 @@ test('credential allowlist is normalized and scoped; source file reads allowed',
   assert.ok(secrets(context('Read', { file_path: '/outside/.env.example' }), { ...rule, allowReadPaths: ['.env.example'] }).length);
   assert.deepEqual(secrets(context('Read', { file_path: '/project/src/index.mjs' }), rule), []);
 });
+
+test('credential reads inspect normalized Windows aliases and respect scoped allowlists', () => {
+  for (const file of ['C:/vault/.env.', 'C:/vault/.npmrc ', 'C:/vault/.aws./credentials.', 'C:/vault/.ssh./id_ed25519.']) {
+    for (const [tool, input] of [['Read', { file_path: file }], ['PowerShell', { command: `Get-Content "${file}"` }]]) {
+      const ctx = context(tool, input, 'C:/project');
+      assert.equal(secrets(ctx, rule)[0]?.code, 'credential-read', `${tool}: ${file}`);
+    }
+  }
+  const ctx = context('Read', { file_path: 'C:/project/.env.example.' }, 'C:/project');
+  const allowed = { ...rule, allowReadPaths: ['.env.example'] };
+  assert.deepEqual(secrets(ctx, allowed), []);
+  assert.equal(secrets({ ...ctx, input: { file_path: 'C:/outside/.env.example.' } }, allowed)[0]?.code, 'credential-read');
+});
+
+test('credential read normalization preserves safe paths and POSIX dot suffixes', () => {
+  for (const file of ['/project/.ssh/../src/index.mjs', '/project/credentials.json/../notes.txt']) {
+    assert.deepEqual(secrets(context('Read', { file_path: file }), rule), []);
+  }
+  assert.deepEqual(secrets(context('Read', { file_path: '/project/credentials.json.' }), rule), []);
+  assert.deepEqual(secrets(context('Read', { file_path: 'C:/project/.ssh-other/config' }, 'C:/project'), rule), []);
+});

@@ -32,6 +32,7 @@ All notable changes are documented here following [Keep a Changelog 1.1](https:/
 
 ### Fixed
 
+- Check credential reads against normalized paths, closing Windows trailing dot/space aliases and avoiding false alarms for paths that traverse out of sensitive directories; keep allowlists scoped to the same normalized paths.
 - Writes to project and user `.agent-guardrails.json` ask for approval by default (`protect-paths.askPaths`).
 - Deduplicate invocation findings by `(ruleId, code)` while preserving first-seen message order.
 - Resolve POSIX-style absolute cwd/project roots consistently across hosts, keeping project-local recursive deletion allowed on Windows and Linux.

@@ -75,7 +75,7 @@ export function secrets(ctx, rule) {
   }
   for (const file of paths) {
     const normalized = normalizePath(file, ctx.cwd, ctx.home);
-    if (sensitivePath(file) && !rule.allowReadPaths.some(p => glob(normalized, normalizePath(p, ctx.projectRoot, ctx.home)))) {
+    if (sensitivePath(normalized) && !rule.allowReadPaths.some(p => glob(normalized, normalizePath(p, ctx.projectRoot, ctx.home)))) {
       found.push(finding('secrets', 'credential-read', 'Reading a credential path requires an explicit allowlist entry.')); break;
     }
   }
