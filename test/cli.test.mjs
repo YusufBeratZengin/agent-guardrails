@@ -23,7 +23,25 @@ async function run(args, { cwd = process.cwd(), input = '' } = {}) {
 test('CLI help, version, explain and usage', async () => {
   assert.equal((await run(['--help'])).status, 0); assert.equal((await run(['--version'])).stdout.trim(), '0.1.0');
   for (const id of Object.keys(config.rules)) { assert.equal((await run(['explain', id])).status, 0); }
-  for (const args of [['explain', 'missing'], ['unknown'], ['init', '--force'], ['hook', 'extra']]) { assert.equal((await run(args)).status, 2); }
+  for (const args of [['explain', 'missing'], ['unknown'], ['init', '--force'], ['hook', 'extra'], ['fixtures', '--unknown']]) { assert.equal((await run(args)).status, 2); }
+});
+
+test('CLI fixtures command exports JSONL with category, format, and audit options', async t => {
+  const dir = fixture(t);
+  const full = await run(['fixtures'], { cwd: dir });
+  assert.equal(full.status, 0);
+  const rows = full.stdout.trim().split('\n').map(l => JSON.parse(l));
+  assert.ok(rows.length > 0);
+  const cat = await run(['fixtures', '--format', 'jsonl', '--category', 'rule-priority', '--audit-format'], { cwd: dir });
+  assert.equal(cat.status, 0);
+  const catRows = cat.stdout.trim().split('\n').map(l => JSON.parse(l));
+  assert.ok(catRows.length > 0);
+  assert.equal(catRows[0].id, undefined);
+  assert.ok(catRows[0].decision);
+  const target = path.join(dir, 'fixtures.jsonl');
+  const outFile = await run(['fixtures', '--output', target], { cwd: dir });
+  assert.equal(outFile.status, 0);
+  assert.equal(fs.existsSync(target), true);
 });
 test('CLI hook stdin protocol and error redaction', async t => {
   const dir = fixture(t);

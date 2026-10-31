@@ -11,6 +11,7 @@
   },
   "exports": {
     ".": "./src/index.mjs",
+    "./fixtures": "./src/fixtures.mjs",
     "./schema": "./schema/config.schema.json"
   },
   "files": [
@@ -36,6 +37,7 @@
     "check": "npm run lint && npm run typecheck && npm test",
     "bench": "node scripts/bench.mjs",
     "scan": "node bin/agent-guardrails.mjs scan .",
+    "fixtures": "node scripts/export-fixtures.mjs",
     "prepublishOnly": "npm run check && npm run scan"
   },
   "devDependencies": {

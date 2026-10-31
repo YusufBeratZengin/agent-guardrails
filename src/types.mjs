@@ -14,5 +14,9 @@
  * @typedef {{decision: 'deny'|'ask'|'warn'|'pass', findings: DecisionFinding[]}} Result
  * @typedef {{kind: string, index: number}} Detection
  * @typedef {{id: string, detect: (text: string) => Detection[]}} PiiDetector
+ * @typedef {'rule-priority'|'default-behavior'|'argument-matching'} FixtureCategory
+ * @typedef {{id: string, category: FixtureCategory, description: string, toolName: string, input: Record<string, unknown>, cwd?: string, projectRoot?: string, home?: string, config?: Config, expectedDecision: 'deny'|'ask'|'warn'|'pass', expectedFindingCodes?: string[]}} Fixture
+ * @typedef {{id: string, category: FixtureCategory, description: string, toolName: string, decision: 'deny'|'ask'|'warn'|'pass', expectedDecision: 'deny'|'ask'|'warn'|'pass', matched: boolean, findings: {ruleId: RuleId, code: string, mode: Mode, preview: string}[], timestamp: string}} DecisionRecord
+ * @typedef {{category?: FixtureCategory|'all', auditFormat?: boolean, config?: Config, outputPath?: string}} ExportOptions
  */
 export {};

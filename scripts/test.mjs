@@ -12,3 +12,4 @@ import '../test/readme.test.mjs';
 import '../test/integrations.test.mjs';
 import '../test/sarif.test.mjs';
 import '../test/git-scan.test.mjs';
+import '../test/fixtures.test.mjs';

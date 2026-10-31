@@ -12,6 +12,7 @@ import { scan } from '../src/scan.mjs';
 import { explanations } from '../src/explain.mjs';
 import { scanSecrets } from '../src/guards/secrets.mjs';
 import { sarif } from '../src/sarif.mjs';
+import { fixtures, exportDecisionsJsonl } from '../src/fixtures.mjs';
 
 const help = `agent-guardrails 0.1.0
   init [--write] [--command <string>]  Print settings; --write merges with backup
@@ -20,6 +21,7 @@ const help = `agent-guardrails 0.1.0
   hook [--agent claude-code|codex|gemini|cursor]  Read host hook JSON from stdin
   test '<json>'      Dry-run, redacted decision + Claude output (no audit)
   scan <path> [--format json|sarif]  Scan secrets; exits 0 clean, 1 findings, 2 error
+  fixtures [--format jsonl] [--output <path>]  Export test fixtures as JSONL
   explain <rule-id>  Explain a rule
   --help | --version
 `;
@@ -82,6 +84,25 @@ export async function main(args, io = { stdin: process.stdin, stdout: process.st
         return { file: scanSecrets(relative, config.rules.secrets).length ? '[REDACTED PATH]' : relative, codes: r.findings.map(f => f.code), preview: '[REDACTED]' };
       }) });
       return results.length ? 1 : 0;
+    }
+    if (cmd === 'fixtures') {
+      let output;
+      let category = 'all';
+      let auditFormat = false;
+      for (let i = 0; i < rest.length; i++) {
+        if (rest[i] === '--output' && rest[i + 1]) { output = rest[++i]; }
+        else if (rest[i] === '--category' && rest[i + 1]) { category = rest[++i]; }
+        else if (rest[i] === '--audit-format') { auditFormat = true; }
+        else if (rest[i] === '--format' && rest[i + 1] === 'jsonl') { i++; }
+        else { throw new Error('Invalid fixtures option'); }
+      }
+      const jsonl = exportDecisionsJsonl(fixtures, {
+        category: /** @type {import('../src/types.mjs').FixtureCategory|'all'} */ (category),
+        auditFormat,
+        outputPath: output,
+      });
+      if (!output) { io.stdout.write(jsonl); }
+      return 0;
     }
     io.stderr.write(help); return 2;
   } catch (error) {

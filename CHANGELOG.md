@@ -6,6 +6,8 @@ All notable changes are documented here following [Keep a Changelog 1.1](https:/
 
 ### Added
 
+- Test fixture suite documenting rule priority order, default behavior, and argument matching, with JSONL decision export via API, script and CLI.
+
 - Native Codex CLI, Gemini CLI and Cursor hook adapters with explicit denial for policy `ask`, plus copyable integration guides and agent-independent pre-commit/CI fallbacks.
 - Dependency-free composite GitHub Action for immutable PR changed-file scanning, redacted SARIF outputs and Ubuntu/Windows self-tests.
 - `scan --format sarif` for SARIF 2.1.0 reports, retaining default JSON output and scan exit codes.
